@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/bogeychan/kingworld-oauth2",
   "bugs": "https://github.com/bogeychan/kingworld-oauth2/issues",
+  "license": "MIT",
   "keywords": [
     "kingworld",
     "oauth2"

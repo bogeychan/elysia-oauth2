@@ -1,0 +1,9 @@
+.git
+.gitignore
+.env
+
+bun.lockb
+node_modules
+
+examples
+tests

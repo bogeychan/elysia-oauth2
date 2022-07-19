@@ -8,7 +8,8 @@ export type OAuth2Request<Profile extends string> = {
   authorized: (...profiles: Profile[]) => Promise<boolean>;
   // authorize: (...profiles: Profile[]) => Response;
   /**
-   * Returns login and logout url of the specified profile(s)
+   * Returns login and logout url of the specified profile(s).
+   * Provide no argument to get all URLs of all registered OAuth 2.0 Profiles.
    */
   profiles: <P extends Profile = Profile>(
     ...profiles: P[]
@@ -78,7 +79,7 @@ type TPluginParams<Profiles extends string> = {
    * OAuth2 profiles
    *
    * @example
-   * import { github } from '@bogeychan/kingworld-oauth2/providers/github';
+   * import { github } from '@bogeychan/kingworld-oauth2';
    *
    * const profiles = {
    *  github: {

@@ -1,7 +1,7 @@
 import type { Plugin } from 'kingworld';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
-export type OAuth2Request<Profile extends string> = {
+export type TOAuth2Request<Profile extends string> = {
   /**
    * Check if one or more profiles are valid, i.e. the token exists and has not expired yet
    */
@@ -13,7 +13,7 @@ export type OAuth2Request<Profile extends string> = {
    */
   profiles: <P extends Profile = Profile>(
     ...profiles: P[]
-  ) => OAuth2ProfileUrlMap<P>;
+  ) => TOAuth2ProfileUrlMap<P>;
   /**
    * provides the authentication header with bearer token.
    * It is not checked whether the token is still valid, possibly the header is empty.
@@ -45,7 +45,7 @@ export type TOAuth2AccessToken = {
  *
  * ! caching of tokens is left to the storage implementation
  */
-export interface Storage<Profiles extends string> {
+export interface OAuth2Storage<Profiles extends string> {
   /**
    * Write token to storage (most likely a login)
    */
@@ -126,9 +126,9 @@ type TPluginParams<Profiles extends string> = {
    */
   state: OAuth2State<Profiles>;
   /**
-   * @see Storage
+   * @see OAuth2Storage
    */
-  storage: Storage<Profiles>;
+  storage: OAuth2Storage<Profiles>;
 };
 
 /**
@@ -155,7 +155,7 @@ const oauth2 = <Profiles extends string>({
   undefined,
   {
     store: {};
-    request: OAuth2Request<Profiles>;
+    request: TOAuth2Request<Profiles>;
   }
 > => {
   if (!login) {
@@ -182,7 +182,7 @@ const oauth2 = <Profiles extends string>({
 
   function resolveProvider({
     name
-  }: TProviderContext<Profiles>['params']): TOAuth2Profile | Response {
+  }: TOAuth2ProviderContext<Profiles>['params']): TOAuth2Profile | Response {
     if (!(name in globalProfiles)) {
       return new Response('', { status: 404, statusText: 'Not Found' });
     }
@@ -202,13 +202,15 @@ const oauth2 = <Profiles extends string>({
     return buildUri(logout, name, external);
   }
 
-  function buildRedirectUri({ name }: TProviderContext<Profiles>['params']) {
+  function buildRedirectUri({
+    name
+  }: TOAuth2ProviderContext<Profiles>['params']) {
     return buildUri(authorized, name, true);
   }
 
   return (app) => {
     // >>> LOGIN <<<
-    app.get<TProviderContext<Profiles>>(login, async (req) => {
+    app.get<TOAuth2ProviderContext<Profiles>>(login, async (req) => {
       const context = resolveProvider(req.params);
 
       if (context instanceof Response) {
@@ -236,7 +238,7 @@ const oauth2 = <Profiles extends string>({
     });
 
     // >>> AUTHORIZED <<<
-    app.get<TProviderContext<Profiles>>(authorized, async (req) => {
+    app.get<TOAuth2ProviderContext<Profiles>>(authorized, async (req) => {
       const context = resolveProvider(req.params);
 
       if (context instanceof Response) {
@@ -297,7 +299,7 @@ const oauth2 = <Profiles extends string>({
     });
 
     // >>> LOGOUT <<<
-    app.get<TProviderContext<Profiles>>(logout, async (req) => {
+    app.get<TOAuth2ProviderContext<Profiles>>(logout, async (req) => {
       const context = resolveProvider(req.params);
 
       if (context instanceof Response) {
@@ -329,7 +331,7 @@ const oauth2 = <Profiles extends string>({
             profiles = Object.keys(globalProfiles) as P[];
           }
 
-          const result = {} as OAuth2ProfileUrlMap<P>;
+          const result = {} as TOAuth2ProfileUrlMap<P>;
 
           for (const profile of profiles) {
             result[profile] = {
@@ -345,7 +347,7 @@ const oauth2 = <Profiles extends string>({
           const token = await storage.get(ctx.request, profile);
           return { Authorization: `Bearer ${token?.access_token}` };
         }
-      } as OAuth2Request<Profiles>);
+      } as TOAuth2Request<Profiles>);
     });
 
     return app;
@@ -357,15 +359,15 @@ export * from './providers';
 
 // not relevant, just type declarations...
 
-type OAuth2ProfileUrlMap<Profiles extends string> = {
+type TOAuth2ProfileUrlMap<Profiles extends string> = {
   [name in Profiles]: { login: string; logout: string };
 };
 
-export type TUrlParams = Record<string, string | number | boolean>;
+export type TOAuth2UrlParams = Record<string, string | number | boolean>;
 
 type TOAuth2Url = {
   url: string;
-  params: TUrlParams;
+  params: TOAuth2UrlParams;
 };
 
 export type TOAuth2Scope = string[];
@@ -375,7 +377,7 @@ type TOAuth2Profile = {
   provider: TOAuth2Provider;
 };
 
-type TProviderContext<Profiles extends string> = {
+type TOAuth2ProviderContext<Profiles extends string> = {
   params: {
     name: Profiles;
   };

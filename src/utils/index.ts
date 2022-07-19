@@ -1,4 +1,8 @@
-import type { TUrlParams, TOAuth2Scope, TOAuth2AccessToken } from '../index';
+import type {
+  TOAuth2UrlParams,
+  TOAuth2Scope,
+  TOAuth2AccessToken
+} from '../index';
 
 export function env(name: string) {
   if (!(name in process.env)) {
@@ -11,7 +15,7 @@ export function env(name: string) {
 
 export function buildUrl(
   url: string,
-  params: TUrlParams,
+  params: TOAuth2UrlParams,
   scope?: TOAuth2Scope
 ) {
   const _url = new URL(url);

@@ -70,7 +70,7 @@ function userPage(user: {}, logout: string) {
 app
   .use(auth)
   .get('/', async (ctx) => {
-    // get login and logout urls for one or more OAuth 2.0 profiles
+    // get login, callback, logout urls for one or more OAuth 2.0 profiles
     const profiles = ctx.profiles('github');
 
     // check if one or more OAuth 2.0 profiles are authorized
@@ -109,7 +109,7 @@ console.log('Listening on http://localhost:3000');
    ```
 4. [bun.js](https://bun.sh/) automatically loads environment variables from `.env` files
 
-If you are unsure which URL should be used as Authorization callback URL call `ctx.profiles()` without an argument to get all URLs of all registered OAuth 2.0 Profiles:
+If you are unsure which URL should be used as `Authorization callback URL` call `ctx.profiles()` without an argument to get all URLs of all registered OAuth 2.0 Profiles:
 
 ```ts
 app
@@ -123,7 +123,7 @@ app
 ## Use predefined OAuth 2.0 providers
 
 ```ts
-import { azure, discord, github } from '@bogeychan/kingworld-oauth2';
+import { azure, discord, github, ... } from '@bogeychan/kingworld-oauth2';
 ```
 
 - All available providers are listed inside the [providers](./src/providers) folder.

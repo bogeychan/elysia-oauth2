@@ -338,6 +338,7 @@ const oauth2 = <Profiles extends string>({
           for (const profile of profiles) {
             result[profile] = {
               login: buildLoginUri(profile),
+              callback: buildRedirectUri({ name: profile }),
               logout: buildLogoutUri(profile)
             };
           }
@@ -362,7 +363,7 @@ export * from './providers';
 // not relevant, just type declarations...
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {
-  [name in Profiles]: { login: string; logout: string };
+  [name in Profiles]: { login: string; callback: string; logout: string };
 };
 
 export type TOAuth2UrlParams = Record<string, string | number | boolean>;

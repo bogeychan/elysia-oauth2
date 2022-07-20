@@ -38,6 +38,7 @@ export type TOAuth2AccessToken = {
   expires_in: number;
   access_token: string;
   created_at: number;
+  // refresh_token: string;
 };
 
 /**
@@ -137,6 +138,7 @@ type TPluginParams<Profiles extends string> = {
 export type TOAuth2Provider = {
   auth: TOAuth2Url;
   token: TOAuth2Url;
+  // refresh: TOAuth2Url;
 
   clientId: string;
   clientSecret: string;

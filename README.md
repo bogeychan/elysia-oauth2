@@ -95,7 +95,7 @@ app
   })
   .listen(3000);
 
-console.log(`http://localhost:3000`);
+console.log('Listening on http://localhost:3000');
 ```
 
 ## Where are the client credentials?
@@ -119,6 +119,16 @@ app
   })
   .listen(3000);
 ```
+
+## Use predefined OAuth 2.0 providers
+
+```ts
+import { azure, discord, github } from '@bogeychan/kingworld-oauth2';
+```
+
+- All available providers are listed inside the [providers](./src/providers) folder.
+
+- Checkout the [examples](./examples) folder on github for further use cases such as the [sqlite module of bun.js](https://github.com/oven-sh/bun#bunsqlite-sqlite3-module).
 
 ## Define your own OAuth 2.0 provider
 

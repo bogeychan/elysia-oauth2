@@ -27,6 +27,7 @@
   "license": "MIT",
   "keywords": [
     "kingworld",
-    "oauth2"
+    "oauth2",
+    "bun"
   ]
 }

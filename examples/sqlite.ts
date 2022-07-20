@@ -1,5 +1,5 @@
 import KingWorld from 'kingworld';
-import oauth2, { azure, github } from '../src/index';
+import oauth2, { azure, discord, github } from '../src/index';
 
 import { randomBytes } from 'crypto';
 import { Database } from 'bun:sqlite';
@@ -25,6 +25,10 @@ const auth = oauth2({
     github: {
       provider: github(),
       scope: ['user']
+    },
+    discord: {
+      provider: discord({ prompt: 'none' }),
+      scope: ['identify']
     }
   },
   state: {
@@ -89,7 +93,7 @@ function userPage(user: {}, logout: string) {
 app
   .use(auth)
   .get('/', async (ctx) => {
-    const profiles = ctx.profiles('azure', 'github');
+    const profiles = ctx.profiles();
 
     if (await ctx.authorized('azure')) {
       const user = await fetch('https://graph.microsoft.com/v1.0/me', {
@@ -105,6 +109,14 @@ app
       });
 
       return userPage(await user.json(), profiles.github.logout);
+    }
+
+    if (await ctx.authorized('discord')) {
+      const user = await fetch('https://discord.com/api/v10/users/@me', {
+        headers: await ctx.tokenHeaders('discord')
+      });
+
+      return userPage(await user.json(), profiles.discord.logout);
     }
 
     const html = `<!DOCTYPE html>

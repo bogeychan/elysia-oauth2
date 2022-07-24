@@ -1,6 +1,6 @@
 {
   "name": "@bogeychan/kingworld-oauth2",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A plugin for kingworld for server-side OAuth 2.0 Authorization Code Flow",
   "author": {
     "name": "bogeychan",

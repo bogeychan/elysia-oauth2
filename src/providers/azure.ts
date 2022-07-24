@@ -12,7 +12,13 @@ type TAzureParams<Tenant extends string, Prompt extends string> = {
   /**
    * Used to control the prompt behavior
    */
-  prompt?: 'login' | 'select_account' | 'consent' | 'admin_consent' | Prompt;
+  prompt?:
+    | 'none'
+    | 'login'
+    | 'select_account'
+    | 'consent'
+    | 'admin_consent'
+    | Prompt;
   /**
    * Used to provides a hint about the `tenant` or `domain` the user should use to sign in
    */

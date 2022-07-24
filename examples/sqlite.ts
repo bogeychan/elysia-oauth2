@@ -1,5 +1,5 @@
 import KingWorld from 'kingworld';
-import oauth2, { azure, discord, github, spotify } from '../src/index';
+import oauth2, { azure, discord, github, spotify, reddit } from '../src/index';
 
 import { randomBytes } from 'crypto';
 import { Database } from 'bun:sqlite';
@@ -33,6 +33,10 @@ const auth = oauth2({
     spotify: {
       provider: spotify(),
       scope: ['user-read-private']
+    },
+    reddit: {
+      provider: reddit(),
+      scope: ['identity']
     }
   },
   state: {
@@ -133,6 +137,15 @@ app
       });
 
       return userPage(await user.json(), profiles.spotify.logout);
+    }
+
+    if (await ctx.authorized('reddit')) {
+      // https://www.reddit.com/dev/api/oauth/#GET_api_v1_me
+      const user = await fetch('https://oauth.reddit.com/api/v1/me', {
+        headers: await ctx.tokenHeaders('reddit')
+      });
+
+      return userPage(await user.json(), profiles.reddit.logout);
     }
 
     const html = `<!DOCTYPE html>

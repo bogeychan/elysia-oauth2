@@ -271,11 +271,15 @@ const oauth2 = <Profiles extends string>({
         ...provider.token.params
       });
 
+      // ! required for reddit
+      const credentials = btoa(provider.clientId + ':' + provider.clientSecret);
+
       const response = await fetch(provider.token.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json'
+          Accept: 'application/json',
+          Authorization: `Basic ${credentials}`
         },
         body: params.toString()
       });

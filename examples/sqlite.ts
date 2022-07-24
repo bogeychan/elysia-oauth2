@@ -1,5 +1,12 @@
 import KingWorld from 'kingworld';
-import oauth2, { azure, discord, github, spotify, reddit } from '../src/index';
+import oauth2, {
+  azure,
+  discord,
+  github,
+  spotify,
+  reddit,
+  google
+} from '../src/index';
 
 import { randomBytes } from 'crypto';
 import { Database } from 'bun:sqlite';
@@ -37,6 +44,10 @@ const auth = oauth2({
     reddit: {
       provider: reddit(),
       scope: ['identity']
+    },
+    google: {
+      provider: google(),
+      scope: ['https://www.googleapis.com/auth/userinfo.profile']
     }
   },
   state: {
@@ -146,6 +157,18 @@ app
       });
 
       return userPage(await user.json(), profiles.reddit.logout);
+    }
+
+    if (await ctx.authorized('google')) {
+      // https://cloud.google.com/identity-platform/docs/reference/rest/v1/UserInfo
+      const user = await fetch(
+        'https://www.googleapis.com/oauth2/v1/userinfo',
+        {
+          headers: await ctx.tokenHeaders('google')
+        }
+      );
+
+      return userPage(await user.json(), profiles.google.logout);
     }
 
     const html = `<!DOCTYPE html>

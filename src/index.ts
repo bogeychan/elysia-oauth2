@@ -223,7 +223,6 @@ const oauth2 = <Profiles extends string>({
 
       const authParams = {
         client_id: provider.clientId,
-        client_secret: provider.clientSecret,
         redirect_uri: buildRedirectUri(req.params),
         response_type: 'code',
         response_mode: 'query',

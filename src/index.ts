@@ -1,4 +1,4 @@
-import type { Plugin } from 'kingworld';
+import type { KingWorld, SCHEMA } from 'kingworld';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -153,13 +153,7 @@ const oauth2 = <Profiles extends string>({
   host,
   redirectTo,
   storage
-}: TPluginParams<Profiles>): Plugin<
-  undefined,
-  {
-    store: {};
-    request: TOAuth2Request<Profiles>;
-  }
-> => {
+}: TPluginParams<Profiles>) => {
   if (!login) {
     login = '/login/:name';
   }
@@ -210,114 +204,120 @@ const oauth2 = <Profiles extends string>({
     return buildUri(authorized, name, true);
   }
 
-  return (app) => {
-    // >>> LOGIN <<<
-    app.get<TOAuth2ProviderContext<Profiles>>(login, async (req) => {
-      const context = resolveProvider(req.params);
+  return (app: KingWorld) => {
+    (app as unknown as InternalOAuth2KingWorld<Profiles>)
 
-      if (context instanceof Response) {
-        return context;
-      }
+      // >>> LOGIN <<<
+      .get(login, async (req) => {
+        const context = resolveProvider(req.params);
 
-      const { provider, scope } = context;
+        if (context instanceof Response) {
+          return context;
+        }
 
-      const authParams = {
-        client_id: provider.clientId,
-        redirect_uri: buildRedirectUri(req.params),
-        response_type: 'code',
-        response_mode: 'query',
-        state: state.generate(req.request, req.params.name)
-      };
+        const { provider, scope } = context;
 
-      const authUrl = buildUrl(
-        provider.auth.url,
-        { ...authParams, ...provider.auth.params },
-        scope
-      );
+        const authParams = {
+          client_id: provider.clientId,
+          redirect_uri: buildRedirectUri(req.params),
+          response_type: 'code',
+          response_mode: 'query',
+          state: state.generate(req.request, req.params.name)
+        };
 
-      return redirect(authUrl);
-    });
-
-    // >>> AUTHORIZED <<<
-    app.get<TOAuth2ProviderContext<Profiles>>(authorized, async (req) => {
-      const context = resolveProvider(req.params);
-
-      if (context instanceof Response) {
-        return context;
-      }
-
-      const { provider } = context;
-
-      const { code, state: callbackState } = req.query as {
-        code: string;
-        state: string;
-      };
-
-      if (!state.check(req.request, req.params.name, callbackState)) {
-        throw new Error('State missmatch');
-      }
-
-      const tokenParams = {
-        client_id: provider.clientId,
-        client_secret: provider.clientSecret,
-        redirect_uri: buildRedirectUri(req.params),
-        grant_type: 'authorization_code',
-        code
-      };
-
-      const params = new URLSearchParams({
-        ...tokenParams,
-        ...provider.token.params
-      });
-
-      // ! required for reddit
-      const credentials = btoa(provider.clientId + ':' + provider.clientSecret);
-
-      const response = await fetch(provider.token.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-          Authorization: `Basic ${credentials}`
-        },
-        body: params.toString()
-      });
-
-      if (
-        !response.ok ||
-        !response.headers.get('Content-Type')?.startsWith('application/json')
-      ) {
-        throw new Error(
-          `${response.status}: ${response.statusText}: ${await response.text()}`
+        const authUrl = buildUrl(
+          provider.auth.url,
+          { ...authParams, ...provider.auth.params },
+          scope
         );
-      }
 
-      const token = (await response.json()) as TOAuth2AccessToken;
-      // ! expires_in is not sent by some providers. a default of one hour is set, which is acceptable.
-      // ! https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
-      token.expires_in = token.expires_in ?? 3600;
-      token.created_at = Date.now() / 1000;
+        return redirect(authUrl);
+      })
 
-      storage.set(req.request, req.params.name, token);
+      // >>> AUTHORIZED <<<
+      .get(authorized, async (req) => {
+        const context = resolveProvider(req.params);
 
-      return redirect(redirectTo);
-    });
+        if (context instanceof Response) {
+          return context;
+        }
 
-    // >>> LOGOUT <<<
-    app.get<TOAuth2ProviderContext<Profiles>>(logout, async (req) => {
-      const context = resolveProvider(req.params);
+        const { provider } = context;
 
-      if (context instanceof Response) {
-        return context;
-      }
+        const { code, state: callbackState } = req.query as {
+          code: string;
+          state: string;
+        };
 
-      await storage.delete(req.request, req.params.name);
+        if (!state.check(req.request, req.params.name, callbackState)) {
+          throw new Error('State missmatch');
+        }
 
-      return redirect(redirectTo);
-    });
+        const tokenParams = {
+          client_id: provider.clientId,
+          client_secret: provider.clientSecret,
+          redirect_uri: buildRedirectUri(req.params),
+          grant_type: 'authorization_code',
+          code
+        };
 
-    app.transform((ctx) => {
-      Object.assign(ctx, {
+        const params = new URLSearchParams({
+          ...tokenParams,
+          ...provider.token.params
+        });
+
+        // ! required for reddit
+        const credentials = btoa(
+          provider.clientId + ':' + provider.clientSecret
+        );
+
+        const response = await fetch(provider.token.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+            Authorization: `Basic ${credentials}`
+          },
+          body: params.toString()
+        });
+
+        if (
+          !response.ok ||
+          !response.headers.get('Content-Type')?.startsWith('application/json')
+        ) {
+          throw new Error(
+            `${response.status}: ${
+              response.statusText
+            }: ${await response.text()}`
+          );
+        }
+
+        const token = (await response.json()) as TOAuth2AccessToken;
+        // ! expires_in is not sent by some providers. a default of one hour is set, which is acceptable.
+        // ! https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
+        token.expires_in = token.expires_in ?? 3600;
+        token.created_at = Date.now() / 1000;
+
+        storage.set(req.request, req.params.name, token);
+
+        return redirect(redirectTo);
+      })
+
+      // >>> LOGOUT <<<
+      .get(logout, async (req) => {
+        const context = resolveProvider(req.params);
+
+        if (context instanceof Response) {
+          return context;
+        }
+
+        await storage.delete(req.request, req.params.name);
+
+        return redirect(redirectTo);
+      });
+
+    return app.inject((ctx) => {
+      return {
         async authorized(...profiles: Profiles[]) {
           for (const profile of profiles) {
             if (!isTokenValid(await storage.get(ctx.request, profile))) {
@@ -353,10 +353,8 @@ const oauth2 = <Profiles extends string>({
           const token = await storage.get(ctx.request, profile);
           return { Authorization: `Bearer ${token?.access_token}` };
         }
-      } as TOAuth2Request<Profiles>);
+      } as TOAuth2Request<Profiles>;
     });
-
-    return app;
   };
 };
 
@@ -388,3 +386,11 @@ type TOAuth2ProviderContext<Profiles extends string> = {
     name: Profiles;
   };
 };
+
+type InternalOAuth2KingWorld<Profiles extends string> = KingWorld<{
+  store: {
+    [SCHEMA]: symbol;
+  };
+  request: TOAuth2ProviderContext<Profiles>;
+  schema: {};
+}>;

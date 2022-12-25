@@ -1,6 +1,6 @@
 {
   "name": "@bogeychan/kingworld-oauth2",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A plugin for kingworld for server-side OAuth 2.0 Authorization Code Flow",
   "author": {
     "name": "bogeychan",
@@ -15,12 +15,12 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "devDependencies": {
-    "bun-types": "^0.1.4",
-    "kingworld": "^0.0.0-experimental.17",
-    "typescript": "^4.7.4"
+    "bun-types": "^0.4.0",
+    "kingworld": "^0.0.0-experimental.55",
+    "typescript": "^4.9.4"
   },
   "peerDependencies": {
-    "kingworld": ">= 0.0.0-experimental.17"
+    "kingworld": ">= 0.0.0-experimental.55"
   },
   "homepage": "https://github.com/bogeychan/kingworld-oauth2",
   "bugs": "https://github.com/bogeychan/kingworld-oauth2/issues",

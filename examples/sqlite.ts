@@ -21,7 +21,7 @@ const uuid = '1f46b510-e674-4ae7-b6fc-d0872c9a4252';
 
 const states = new Set();
 
-const app = new KingWorld<{ store: {}; request: {} }>();
+const app = new KingWorld();
 
 const auth = oauth2({
   profiles: {

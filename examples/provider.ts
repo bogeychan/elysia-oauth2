@@ -22,11 +22,10 @@ function myGithub(): TOAuth2Provider {
   };
 }
 
-// @ts-ignore -> https://github.com/oven-sh/bun/issues/749
 const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
-const app = new KingWorld<{ store: {}; request: {} }>();
+const app = new KingWorld();
 
 const auth = oauth2({
   profiles: {

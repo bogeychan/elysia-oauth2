@@ -1,4 +1,4 @@
-import KingWorld from 'kingworld';
+import { Elysia } from 'elysia';
 import oauth2, { TOAuth2Provider } from '../src/index';
 
 import { randomBytes } from 'crypto';
@@ -25,7 +25,7 @@ function myGithub(): TOAuth2Provider {
 const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
-const app = new KingWorld();
+const app = new Elysia();
 
 const auth = oauth2({
   profiles: {

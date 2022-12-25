@@ -1,18 +1,18 @@
-# @bogeychan/kingworld-oauth2
+# @bogeychan/elysia-oauth2
 
-A plugin for [kingworld](https://github.com/saltyaom/kingworld) for server-side [OAuth 2.0 Authorization Code Flow](https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code/)
+A plugin for [elysia](https://github.com/elysiajs/elysia) for server-side [OAuth 2.0 Authorization Code Flow](https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code/)
 
 ## Installation
 
 ```bash
-bun add @bogeychan/kingworld-oauth2
+bun add @bogeychan/elysia-oauth2
 ```
 
 ## Usage
 
 ```ts
-import KingWorld from 'kingworld';
-import oauth2, { github } from '@bogeychan/kingworld-oauth2';
+import { Elysia } from 'elysia';
+import oauth2, { github } from '@bogeychan/elysia-oauth2';
 
 import { randomBytes } from 'crypto';
 
@@ -20,7 +20,7 @@ const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
 // typescript type support
-const app = new KingWorld();
+const app = new Elysia<{ store: {}; request: {} }>();
 
 const auth = oauth2({
   profiles: {
@@ -122,7 +122,7 @@ app
 ## Use predefined OAuth 2.0 providers
 
 ```ts
-import { azure, discord, github, ... } from '@bogeychan/kingworld-oauth2';
+import { azure, discord, github, ... } from '@bogeychan/elysia-oauth2';
 ```
 
 - All available providers are listed inside the [providers](./src/providers) folder.
@@ -132,7 +132,7 @@ import { azure, discord, github, ... } from '@bogeychan/kingworld-oauth2';
 ## Define your own OAuth 2.0 provider
 
 ```ts
-import oauth2, { TOAuth2Provider } from '@bogeychan/kingworld-oauth2';
+import oauth2, { TOAuth2Provider } from '@bogeychan/elysia-oauth2';
 
 function myGithub(): TOAuth2Provider {
   return {

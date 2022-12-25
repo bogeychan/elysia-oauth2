@@ -1,4 +1,4 @@
-import type { KingWorld, SCHEMA } from 'kingworld';
+import type { Elysia, SCHEMA } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -80,7 +80,7 @@ type TPluginParams<Profiles extends string> = {
    * OAuth2 profiles
    *
    * @example
-   * import { github } from '@bogeychan/kingworld-oauth2';
+   * import { github } from '@bogeychan/elysia-oauth2';
    *
    * const profiles = {
    *  github: {
@@ -204,8 +204,8 @@ const oauth2 = <Profiles extends string>({
     return buildUri(authorized, name, true);
   }
 
-  return (app: KingWorld) => {
-    (app as unknown as InternalOAuth2KingWorld<Profiles>)
+  return (app: Elysia) => {
+    (app as unknown as InternalOAuth2Elysia<Profiles>)
 
       // >>> LOGIN <<<
       .get(login, async (req) => {
@@ -388,7 +388,7 @@ type TOAuth2ProviderContext<Profiles extends string> = {
   };
 };
 
-type InternalOAuth2KingWorld<Profiles extends string> = KingWorld<{
+type InternalOAuth2Elysia<Profiles extends string> = Elysia<{
   store: {
     [SCHEMA]: symbol;
   };

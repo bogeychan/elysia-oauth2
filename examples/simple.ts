@@ -1,4 +1,4 @@
-import KingWorld from 'kingworld';
+import { Elysia } from 'elysia';
 import oauth2, { github } from '../src/index';
 
 import { randomBytes } from 'crypto';
@@ -6,7 +6,7 @@ import { randomBytes } from 'crypto';
 const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
-const app = new KingWorld();
+const app = new Elysia();
 
 const auth = oauth2({
   profiles: {

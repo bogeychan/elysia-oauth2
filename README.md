@@ -20,7 +20,7 @@ const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
 // typescript type support
-const app = new Elysia<{ store: {}; request: {} }>();
+const app = new Elysia();
 
 const auth = oauth2({
   profiles: {

@@ -258,7 +258,8 @@ const oauth2 = <Profiles extends string>({
           client_secret: provider.clientSecret,
           redirect_uri: buildRedirectUri(req.params),
           grant_type: 'authorization_code',
-          code
+          // ! google requires decoded auth code
+          code: decodeURIComponent(code)
         };
 
         const params = new URLSearchParams({

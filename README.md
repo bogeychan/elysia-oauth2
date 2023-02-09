@@ -1,6 +1,6 @@
 # @bogeychan/elysia-oauth2
 
-A plugin for [elysia](https://github.com/elysiajs/elysia) for server-side [OAuth 2.0 Authorization Code Flow](https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code/)
+A plugin for [elysia](https://github.com/elysiajs/elysia) for server-side [OAuth 2.0 Authorization Code Flow](https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code)
 
 ## Installation
 
@@ -19,7 +19,6 @@ import { randomBytes } from 'crypto';
 const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
-// typescript type support
 const app = new Elysia();
 
 const auth = oauth2({
@@ -106,7 +105,7 @@ console.log('Listening on http://localhost:3000');
    GITHUB_OAUTH_CLIENT_ID=client id
    GITHUB_OAUTH_CLIENT_SECRET=client secret
    ```
-4. [bun.js](https://bun.sh/) automatically loads environment variables from `.env` files
+4. [bun.js](https://bun.sh) automatically loads environment variables from `.env` files
 
 If you are unsure which URL should be used as `Authorization callback URL` call `ctx.profiles()` without an argument to get all URLs of all registered OAuth 2.0 Profiles:
 

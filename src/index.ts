@@ -1,4 +1,4 @@
-import type { Elysia, SCHEMA, DEFS } from 'elysia';
+import type { Elysia, SCHEMA, DEFS, EXPOSED } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -317,7 +317,7 @@ const oauth2 = <Profiles extends string>({
         return redirect(redirectTo);
       });
 
-    return app.inject((ctx) => {
+    return app.derive((ctx) => {
       return {
         async authorized(...profiles: Profiles[]) {
           for (const profile of profiles) {
@@ -395,4 +395,9 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<{
   };
   request: TOAuth2ProviderContext<Profiles>;
   schema: {};
+  meta: {
+    [SCHEMA]: null;
+    [DEFS]: null;
+    [EXPOSED]: null;
+  };
 }>;

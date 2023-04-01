@@ -69,9 +69,11 @@ const auth = oauth2({
     async get(req, name) {
       console.log(`get token: ${name}`);
 
-      const token = db
-        .query('SELECT token FROM storage WHERE uuid = ? AND name = ?')
-        .get(uuid, name)?.token as string;
+      const token = (
+        db
+          .query('SELECT token FROM storage WHERE uuid = ? AND name = ?')
+          .get(uuid, name) as { token: string }
+      )?.token;
 
       if (!token) {
         return;
@@ -84,13 +86,11 @@ const auth = oauth2({
 
       db.run(
         'INSERT OR REPLACE INTO storage (uuid, name, token) VALUES (?, ?, ?)',
-        uuid,
-        name,
-        JSON.stringify(token)
+        [uuid, name, JSON.stringify(token)]
       );
     },
     async delete(req, name) {
-      db.run('DELETE FROM storage WHERE uuid = ? AND name = ?', uuid, name);
+      db.run('DELETE FROM storage WHERE uuid = ? AND name = ?', [uuid, name]);
     }
   }
 });

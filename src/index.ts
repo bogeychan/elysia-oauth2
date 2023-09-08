@@ -1,4 +1,4 @@
-import type { Elysia, SCHEMA, DEFS, EXPOSED } from 'elysia';
+import type { Elysia } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -388,16 +388,18 @@ type TOAuth2ProviderContext<Profiles extends string> = {
   };
 };
 
-type InternalOAuth2Elysia<Profiles extends string> = Elysia<{
-  store: {
-    [SCHEMA]: symbol;
-    [DEFS]: symbol;
-  };
-  request: TOAuth2ProviderContext<Profiles>;
-  schema: {};
-  meta: {
-    [SCHEMA]: null;
-    [DEFS]: null;
-    [EXPOSED]: null;
-  };
-}>;
+type InternalOAuth2Elysia<Profiles extends string> = Elysia<
+  '',
+  {
+    store: {};
+    request: TOAuth2ProviderContext<Profiles>;
+    schema: {};
+    error: {};
+    meta: {
+      schema: {};
+      defs: {};
+      exposed: {};
+    };
+  }
+>;
+

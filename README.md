@@ -105,7 +105,7 @@ console.log('Listening on http://localhost:3000');
    GITHUB_OAUTH_CLIENT_ID=client id
    GITHUB_OAUTH_CLIENT_SECRET=client secret
    ```
-4. [bun.js](https://bun.sh) automatically loads environment variables from `.env` files
+4. [Bun](https://bun.sh/docs/cli/run#environment-variables) automatically loads environment variables from `.env` files
 
 If you are unsure which URL should be used as `Authorization callback URL` call `ctx.profiles()` without an argument to get all URLs of all registered OAuth 2.0 Profiles:
 
@@ -126,7 +126,7 @@ import { azure, discord, github, ... } from '@bogeychan/elysia-oauth2';
 
 - All available providers are listed inside the [providers](./src/providers) folder.
 
-- Checkout the [examples](./examples) folder on github for further use cases such as the [sqlite module of bun.js](https://github.com/oven-sh/bun#bunsqlite-sqlite3-module).
+- Checkout the [examples](./examples) folder on github for further use cases such as the [Bun's sqlite module](https://bun.sh/docs/api/sqlite).
 
 ## Define your own OAuth 2.0 provider
 
@@ -170,3 +170,4 @@ const auth = oauth2({
 ## License
 
 [MIT](LICENSE)
+

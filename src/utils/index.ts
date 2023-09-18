@@ -21,7 +21,7 @@ export function buildUrl(
   const _url = new URL(url);
 
   if (scope) {
-    _url.searchParams.append('scope', scope.join(','));
+    _url.searchParams.append('scope', scope.join(' '));
   }
 
   for (const [name, value] of Object.entries(params)) {
@@ -47,3 +47,4 @@ export function isTokenValid(token?: TOAuth2AccessToken) {
   const expiry = token.created_at + token.expires_in;
   return now < expiry;
 }
+

@@ -1,6 +1,6 @@
 {
   "name": "@bogeychan/elysia-oauth2",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "A plugin for Elysia.js for server-side OAuth 2.0 Authorization Code Flow",
   "author": {
     "name": "bogeychan",

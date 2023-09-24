@@ -1,8 +1,4 @@
-import type {
-  TOAuth2UrlParams,
-  TOAuth2Scope,
-  TOAuth2AccessToken
-} from '../index';
+import type { TOAuth2UrlParams, TOAuth2Scope, TOAuth2AccessToken } from '..';
 
 export function env(name: string) {
   if (!(name in process.env)) {

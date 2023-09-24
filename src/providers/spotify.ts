@@ -1,4 +1,4 @@
-import type { TOAuth2Provider } from '../index';
+import type { TOAuth2Provider } from '..';
 import { env } from '../utils';
 
 /**
@@ -35,3 +35,4 @@ export function spotify({ show_dialog }: TSpotifyParams = {}): TOAuth2Provider {
 
   return provider;
 }
+

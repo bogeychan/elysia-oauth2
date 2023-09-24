@@ -1,4 +1,4 @@
-import type { Elysia } from 'elysia';
+import { Elysia } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -174,6 +174,8 @@ const oauth2 = <Profiles extends string>({
     redirectTo = '/';
   }
 
+  type TOAuth2Params = TOAuth2ProviderContext<Profiles>['params'];
+
   const protocol = host.startsWith('localhost') ? 'http' : 'https';
 
   function resolveProvider({
@@ -198,15 +200,16 @@ const oauth2 = <Profiles extends string>({
     return buildUri(logout, name, external);
   }
 
-  function buildRedirectUri({
-    name
-  }: TOAuth2ProviderContext<Profiles>['params']) {
+  function buildRedirectUri({ name }: TOAuth2Params) {
     return buildUri(authorized, name, true);
   }
 
-  return (app: Elysia) => {
-    (app as unknown as InternalOAuth2Elysia<Profiles>)
-
+  return (
+    (
+      new Elysia({
+        name: '@bogeychan/elysia-oauth2'
+      }) as InternalOAuth2Elysia<Profiles>
+    )
       // >>> LOGIN <<<
       .get(login, async (req) => {
         const context = resolveProvider(req.params);
@@ -222,7 +225,7 @@ const oauth2 = <Profiles extends string>({
           redirect_uri: buildRedirectUri(req.params),
           response_type: 'code',
           response_mode: 'query',
-          state: state.generate(req.request, req.params.name)
+          state: state.generate(req.request, (req.params as TOAuth2Params).name)
         };
 
         const authUrl = buildUrl(
@@ -249,8 +252,14 @@ const oauth2 = <Profiles extends string>({
           state: string;
         };
 
-        if (!state.check(req.request, req.params.name, callbackState)) {
-          throw new Error('State missmatch');
+        if (
+          !state.check(
+            req.request,
+            (req.params as TOAuth2Params).name,
+            callbackState
+          )
+        ) {
+          throw new Error('State mismatch');
         }
 
         const tokenParams = {
@@ -299,7 +308,7 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-        storage.set(req.request, req.params.name, token);
+        storage.set(req.request, (req.params as TOAuth2Params).name, token);
 
         return redirect(redirectTo);
       })
@@ -312,51 +321,50 @@ const oauth2 = <Profiles extends string>({
           return context;
         }
 
-        await storage.delete(req.request, req.params.name);
+        await storage.delete(req.request, (req.params as TOAuth2Params).name);
 
         return redirect(redirectTo);
-      });
-
-    return app.derive((ctx) => {
-      return {
-        async authorized(...profiles: Profiles[]) {
-          for (const profile of profiles) {
-            if (!isTokenValid(await storage.get(ctx.request, profile))) {
-              return false;
+      })
+      .derive((ctx) => {
+        return {
+          async authorized(...profiles: Profiles[]) {
+            for (const profile of profiles) {
+              if (!isTokenValid(await storage.get(ctx.request, profile))) {
+                return false;
+              }
             }
+            return true;
+          },
+
+          // authorize(...profiles: Profiles[]) {
+          //   throw new Error('not implementd');
+          // },
+
+          profiles<P extends Profiles = Profiles>(...profiles: P[]) {
+            if (profiles.length === 0) {
+              profiles = Object.keys(globalProfiles) as P[];
+            }
+
+            const result = {} as TOAuth2ProfileUrlMap<P>;
+
+            for (const profile of profiles) {
+              result[profile] = {
+                login: buildLoginUri(profile),
+                callback: buildRedirectUri({ name: profile }),
+                logout: buildLogoutUri(profile)
+              };
+            }
+
+            return result;
+          },
+
+          async tokenHeaders(profile: Profiles) {
+            const token = await storage.get(ctx.request, profile);
+            return { Authorization: `Bearer ${token?.access_token}` };
           }
-          return true;
-        },
-
-        // authorize(...profiles: Profiles[]) {
-        //   throw new Error('not implementd');
-        // },
-
-        profiles<P extends Profiles = Profiles>(...profiles: P[]) {
-          if (profiles.length === 0) {
-            profiles = Object.keys(globalProfiles) as P[];
-          }
-
-          const result = {} as TOAuth2ProfileUrlMap<P>;
-
-          for (const profile of profiles) {
-            result[profile] = {
-              login: buildLoginUri(profile),
-              callback: buildRedirectUri({ name: profile }),
-              logout: buildLogoutUri(profile)
-            };
-          }
-
-          return result;
-        },
-
-        async tokenHeaders(profile: Profiles) {
-          const token = await storage.get(ctx.request, profile);
-          return { Authorization: `Bearer ${token?.access_token}` };
-        }
-      } as TOAuth2Request<Profiles>;
-    });
-  };
+        } as TOAuth2Request<Profiles>;
+      })
+  );
 };
 
 export default oauth2;

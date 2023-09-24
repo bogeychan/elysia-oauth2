@@ -1,4 +1,4 @@
-import type { TOAuth2Provider } from '../index';
+import type { TOAuth2Provider } from '..';
 import { env } from '../utils';
 
 /**
@@ -66,3 +66,4 @@ export function azure<Tenant extends string, Prompt extends string>({
 
   return provider;
 }
+

@@ -1,4 +1,4 @@
-import type { TOAuth2Provider } from '../index';
+import type { TOAuth2Provider } from '..';
 import { env } from '../utils';
 
 /**
@@ -47,3 +47,4 @@ export function github({
 
   return provider;
 }
+

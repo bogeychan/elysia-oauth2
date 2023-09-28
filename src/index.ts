@@ -388,6 +388,9 @@ const oauth2 = <Profiles extends string>({
             };
           },
 
+          // ! required for twitch profile
+          // ! pick => const login = await tokenLogin('twitch');
+          // ! then fetch `https://api.twitch.tv/helix/users?login=${login}`
           async tokenLogin(profile: Profiles) {
             const token = await storage.get(ctx.request, profile);
             return token?.login;

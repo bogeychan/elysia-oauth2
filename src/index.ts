@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { buildUrl, isTokenValid, redirect } from './utils';
+import { buildUrl, env, isTokenActive, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
   /**
@@ -38,7 +38,8 @@ export type TOAuth2AccessToken = {
   expires_in: number;
   access_token: string;
   created_at: number;
-  // refresh_token: string;
+  refresh_token?: string;
+  login?: string
 };
 
 /**
@@ -242,7 +243,7 @@ const oauth2 = <Profiles extends string>({
           { ...authParams, ...provider.auth.params },
           scope
           );
-          
+
         return redirect(authUrl);
       })
 
@@ -319,7 +320,6 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-
         storage.set(req.request, (req.params as TOAuth2Params).name, token);
 
         return redirect(redirectTo);
@@ -341,16 +341,25 @@ const oauth2 = <Profiles extends string>({
         return {
           async authorized(...profiles: Profiles[]) {
             for (const profile of profiles) {
+              if (profile === 'twitch') {
+                const token = await isTokenActive(await storage.get(ctx.request, profile))
+
+                const data = await storage.get(ctx.request, profile)
+
+                if (!token) {
+                  return false
+                }
+
+                storage.set(ctx.request, profile, {...data, ...token})
+                return true
+              }
+
               if (!isTokenValid(await storage.get(ctx.request, profile))) {
                 return false;
               }
             }
             return true;
           },
-
-          // authorize(...profiles: Profiles[]) {
-          //   throw new Error('not implementd');
-          // },
 
           profiles<P extends Profiles = Profiles>(...profiles: P[]) {
             if (profiles.length === 0) {
@@ -372,7 +381,16 @@ const oauth2 = <Profiles extends string>({
 
           async tokenHeaders(profile: Profiles) {
             const token = await storage.get(ctx.request, profile);
-            return { Authorization: `Bearer ${token?.access_token}` };
+            return { 
+              Authorization: `Bearer ${token?.access_token}`, 
+              // ! required for twitch
+              'Client-Id': env('TWITCH_OAUTH_CLIENT_ID') 
+            };
+          },
+
+          async tokenLogin(profile: Profiles) {
+            const token = await storage.get(ctx.request, profile);
+            return token?.login;
           }
         } as TOAuth2Request<Profiles>;
       })

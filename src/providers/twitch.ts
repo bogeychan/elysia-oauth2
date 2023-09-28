@@ -17,7 +17,7 @@ export const twitch = (): TOAuth2Provider => {
     token: {
       url: 'https://id.twitch.tv/oauth2/token',
       params: {
-        grant_type: 'client_credentials',
+        grant_type: 'authorization_code',
         client_id: env('TWITCH_OAUTH_CLIENT_ID'),
         client_secret: env('TWITCH_OAUTH_CLIENT_SECRET')
       }

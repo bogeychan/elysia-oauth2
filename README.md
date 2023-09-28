@@ -69,17 +69,14 @@ function userPage(user: {}, logout: string) {
 app
   .use(auth)
   .get('/', async (ctx) => {
-    // get login, callback, logout urls for one or more OAuth 2.0 profiles
-    const profiles = ctx.profiles('github');
+    // get login, callback, logout, profile urls for one or more OAuth 2.0 profiles
+    const list = ctx.profiles('github');
+
+    const user = await fetch(list.github.profile);
 
     // check if one or more OAuth 2.0 profiles are authorized
     if (await ctx.authorized('github')) {
-      const user = await fetch('https://api.github.com/user', {
-        // ... and use the Authorization header afterwards
-        headers: await ctx.tokenHeaders('github')
-      });
-
-      return userPage(await user.json(), profiles.github.logout);
+      return userPage(await user.json(), list.github.logout);
     }
 
     // Render login page

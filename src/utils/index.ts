@@ -41,14 +41,18 @@ export function redirect(location: string) {
  * @param token 
  * @returns 
  */
-export async function isTokenActive(token?: TOAuth2AccessToken) {
+export async function validateToken(token?: TOAuth2AccessToken) {
   const response = await fetch('https://id.twitch.tv/oauth2/validate', {
     headers: {Authorization: `OAuth ${token.access_token}`}
   })
 
+  
   if (response.ok) {
-    return response.json();
+    const data = await response.json()
+    return {...token, ...data};
   }
+
+  return false
 }
 
 export function isTokenValid(token?: TOAuth2AccessToken) {
@@ -57,6 +61,9 @@ export function isTokenValid(token?: TOAuth2AccessToken) {
   }
   const now = Date.now() / 1000;
   const expiry = token.created_at + token.expires_in;
-  return now < expiry;
+  if (now < expiry) {
+  return token;}
+
+  return false
 }
 

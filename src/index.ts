@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { buildUrl, env, isTokenActive, isTokenValid, redirect } from './utils';
+import { buildUrl, env, validateToken, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
   /**
@@ -39,7 +39,7 @@ export type TOAuth2AccessToken = {
   access_token: string;
   created_at: number;
   refresh_token?: string;
-  login?: string
+  login?: string;
 };
 
 /**
@@ -82,6 +82,7 @@ type TPluginParams<Profiles extends string> = {
    *
    * @example
    * import { github } from '@bogeychan/elysia-oauth2';
+import { profile } from '../../../../src/users/users.controller';
    *
    * const profiles = {
    *  github: {
@@ -124,6 +125,12 @@ type TPluginParams<Profiles extends string> = {
    */
   prefix?: string;
   /**
+   * Relative path starting at `host` specifying the `profile` endpoint.
+   *
+   * @default "/user/:name/profile"
+   */
+  profile?: string;
+  /**
    * The `redirectTo` path (relative to the `host`) is called when, for example, the user has successfully logged in or logged out
    *
    * @default "/"
@@ -145,6 +152,7 @@ type TPluginParams<Profiles extends string> = {
 export type TOAuth2Provider = {
   auth: TOAuth2Url;
   token: TOAuth2Url;
+  profile: TOAuth2Url;
   // refresh: TOAuth2Url;
 
   clientId: string;
@@ -160,6 +168,7 @@ const oauth2 = <Profiles extends string>({
   host,
   redirectTo,
   storage,
+  profile,
   prefix
 }: TPluginParams<Profiles>) => {
   if (!login) {
@@ -168,6 +177,10 @@ const oauth2 = <Profiles extends string>({
 
   if (!authorized) {
     authorized = '/login/:name/authorized';
+  }
+
+  if (!profile) {
+    profile = '/user/:name/profile'
   }
 
   if (!logout) {
@@ -179,7 +192,7 @@ const oauth2 = <Profiles extends string>({
   }
 
   if (!redirectTo) {
-    redirectTo = '/';
+    redirectTo = '/user/:name/profile';
   }
 
   type TOAuth2Params = TOAuth2ProviderContext<Profiles>['params'];
@@ -197,11 +210,15 @@ const oauth2 = <Profiles extends string>({
 
   function buildUri(template: string, name: string, external: boolean = true) {
     const uri = template.replace(':name', name);
-    return external ? `${protocol}://${host}${prefix || ""}${uri}` : uri;
+    return external ? `${protocol}://${host}${prefix || ""}${uri}` : `${prefix || ""}${uri}`;
   }
 
   function buildLoginUri(name: string, external: boolean = true) {
     return buildUri(login, name, external);
+  }
+
+  function buildProfileUri(name: string, external: boolean = true) {
+    return buildUri(profile, name, external);
   }
 
   function buildLogoutUri(name: string, external: boolean = true) {
@@ -210,6 +227,10 @@ const oauth2 = <Profiles extends string>({
 
   function buildRedirectUri({ name }: TOAuth2Params) {
     return buildUri(authorized, name, true);
+  }
+
+  function buildRedirectToUri({ name }: TOAuth2Params) {
+    return buildUri(redirectTo, name, true);
   }
 
 
@@ -322,7 +343,7 @@ const oauth2 = <Profiles extends string>({
 
         storage.set(req.request, (req.params as TOAuth2Params).name, token);
 
-        return redirect(redirectTo);
+        return redirect(buildRedirectToUri(req.params));
       })
 
       // >>> LOGOUT <<<
@@ -335,28 +356,58 @@ const oauth2 = <Profiles extends string>({
 
         await storage.delete(req.request, (req.params as TOAuth2Params).name);
 
-        return redirect(redirectTo);
+        return redirect(buildRedirectToUri(req.params));
+      })
+      // >>> PROFILE <<<
+      .get(profile, async (req) => {
+        const context = resolveProvider(req.params);
+
+        if (context instanceof Response) {
+          return context;
+        }
+
+        const { provider } = context;
+
+        const token = req.params.name === 'twitch' ? await validateToken(await storage.get(req.request, req.params.name)) : isTokenValid(await storage.get(req.request, req.params.name))
+
+        if (!token) {
+          req.set.status = 'Unauthorized'
+          return {error: 401, message: "Unauthorized"}
+        }
+
+        storage.set(req.request, req.params.name, token)
+
+        const profileUrl = buildUrl(
+          provider.profile.url,
+          { login: token.login },
+          );
+
+          const user = await fetch(profileUrl, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token?.access_token}`, 
+            // ! required for twitch oauth2
+            'Client-Id': req.params.name === 'twitch' ? env('TWITCH_OAUTH_CLIENT_ID') : undefined }
+          });
+  
+          if (user.ok) {
+            if (req.params.name === 'twitch') {
+              // ! required for twitch as you can retrieve many profiles
+            return (await user.json()).data.pop();
+          }
+
+          return (await user.json());
+          }
+  
+          req.set.status = 'Unauthorized'
+          return {error: 401, message: "Unauthorized"}
       })
       .derive((ctx) => {
         return {
           async authorized(...profiles: Profiles[]) {
             for (const profile of profiles) {
-              if (profile === 'twitch') {
-                const token = await isTokenActive(await storage.get(ctx.request, profile))
-
-                const data = await storage.get(ctx.request, profile)
-
-                if (!token) {
-                  return false
-                }
-
-                storage.set(ctx.request, profile, {...data, ...token})
-                return true
-              }
-
               if (!isTokenValid(await storage.get(ctx.request, profile))) {
                 return false;
-              }
+              } 
             }
             return true;
           },
@@ -372,7 +423,8 @@ const oauth2 = <Profiles extends string>({
               result[profile] = {
                 login: buildLoginUri(profile),
                 callback: buildRedirectUri({ name: profile }),
-                logout: buildLogoutUri(profile)
+                logout: buildLogoutUri(profile),
+                profile: buildProfileUri(profile)
               };
             }
 
@@ -381,20 +433,8 @@ const oauth2 = <Profiles extends string>({
 
           async tokenHeaders(profile: Profiles) {
             const token = await storage.get(ctx.request, profile);
-            return { 
-              Authorization: `Bearer ${token?.access_token}`, 
-              // ! required for twitch
-              'Client-Id': env('TWITCH_OAUTH_CLIENT_ID') 
-            };
+            return { Authorization: `Bearer ${token?.access_token}` };
           },
-
-          // ! required for twitch profile
-          // ! pick => const login = await tokenLogin('twitch');
-          // ! then fetch `https://api.twitch.tv/helix/users?login=${login}`
-          async tokenLogin(profile: Profiles) {
-            const token = await storage.get(ctx.request, profile);
-            return token?.login;
-          }
         } as TOAuth2Request<Profiles>;
       })
   );
@@ -406,7 +446,7 @@ export * from './providers';
 // not relevant, just type declarations...
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {
-  [name in Profiles]: { login: string; callback: string; logout: string };
+  [name in Profiles]: { login: string; callback: string; logout: string; profile: string };
 };
 
 export type TOAuth2UrlParams = Record<string, string | number | boolean>;
@@ -433,6 +473,9 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<
   '',
   {
     store: {};
+    params: {
+      name: Profiles
+    };
     request: TOAuth2ProviderContext<Profiles>;
     schema: {};
     error: {};

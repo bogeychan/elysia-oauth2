@@ -117,6 +117,12 @@ type TPluginParams<Profiles extends string> = {
    */
   host?: string;
   /**
+   * The standard prefix of your application if it exists.
+   *
+   * @default "undefined"
+   */
+  prefix?: string;
+  /**
    * The `redirectTo` path (relative to the `host`) is called when, for example, the user has successfully logged in or logged out
    *
    * @default "/"
@@ -152,7 +158,8 @@ const oauth2 = <Profiles extends string>({
   logout,
   host,
   redirectTo,
-  storage
+  storage,
+  prefix
 }: TPluginParams<Profiles>) => {
   if (!login) {
     login = '/login/:name';
@@ -189,7 +196,7 @@ const oauth2 = <Profiles extends string>({
 
   function buildUri(template: string, name: string, external: boolean = true) {
     const uri = template.replace(':name', name);
-    return external ? `${protocol}://${host}${uri}` : uri;
+    return external ? `${protocol}://${host}${prefix || ""}${uri}` : uri;
   }
 
   function buildLoginUri(name: string, external: boolean = true) {
@@ -204,6 +211,7 @@ const oauth2 = <Profiles extends string>({
     return buildUri(authorized, name, true);
   }
 
+
   return (
     (
       new Elysia({
@@ -212,6 +220,7 @@ const oauth2 = <Profiles extends string>({
     )
       // >>> LOGIN <<<
       .get(login, async (req) => {
+        
         const context = resolveProvider(req.params);
 
         if (context instanceof Response) {
@@ -232,8 +241,8 @@ const oauth2 = <Profiles extends string>({
           provider.auth.url,
           { ...authParams, ...provider.auth.params },
           scope
-        );
-
+          );
+          
         return redirect(authUrl);
       })
 
@@ -276,13 +285,14 @@ const oauth2 = <Profiles extends string>({
           ...provider.token.params
         });
 
+        
         // ! required for reddit
         const credentials = btoa(
           provider.clientId + ':' + provider.clientSecret
-        );
-
-        const response = await fetch(provider.token.url, {
-          method: 'POST',
+          );
+          
+          const response = await fetch(provider.token.url, {
+            method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Accept: 'application/json',
@@ -290,7 +300,8 @@ const oauth2 = <Profiles extends string>({
           },
           body: params.toString()
         });
-
+        
+        
         if (
           !response.ok ||
           !response.headers.get('Content-Type')?.startsWith('application/json')
@@ -307,6 +318,7 @@ const oauth2 = <Profiles extends string>({
         // ! https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
+
 
         storage.set(req.request, (req.params as TOAuth2Params).name, token);
 

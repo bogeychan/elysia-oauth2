@@ -19,7 +19,7 @@ import { randomBytes } from 'crypto';
 const globalState = randomBytes(8).toString('hex');
 let globalToken = null;
 
-const app = new Elysia();
+const app = new Elysia({ prefix: '/api/v1' });
 
 const auth = oauth2({
   profiles: {
@@ -29,6 +29,7 @@ const auth = oauth2({
       scope: ['user']
     }
   },
+  prefix: '/api/v1', 
   state: {
     // custom state verification between requests
     check(req, name, state) {
@@ -101,10 +102,12 @@ console.log('Listening on http://localhost:3000');
 1. Generate a `client id` and `client secret` for an [OAuth app on Github](https://docs.github.com/en/developers/apps/building-oauth-apps/creating-an-oauth-app)
 2. Use `http://localhost:3000/login/github/authorized` as your `Authorization callback URL`
 3. Create an `.env` file based on the previously generated client credentials:
+
    ```env
    GITHUB_OAUTH_CLIENT_ID=client id
    GITHUB_OAUTH_CLIENT_SECRET=client secret
    ```
+
 4. [Bun](https://bun.sh/docs/cli/run#environment-variables) automatically loads environment variables from `.env` files
 
 If you are unsure which URL should be used as `Authorization callback URL` call `ctx.profiles()` without an argument to get all URLs of all registered OAuth 2.0 Profiles:
@@ -170,4 +173,3 @@ const auth = oauth2({
 ## License
 
 [MIT](LICENSE)
-

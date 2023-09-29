@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { buildUrl, env, validateToken, isTokenValid, redirect } from './utils';
+import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
   /**
@@ -125,12 +125,6 @@ import { profile } from '../../../../src/users/users.controller';
    */
   prefix?: string;
   /**
-   * Relative path starting at `host` specifying the `profile` endpoint.
-   *
-   * @default "/user/:name/profile"
-   */
-  profile?: string;
-  /**
    * The `redirectTo` path (relative to the `host`) is called when, for example, the user has successfully logged in or logged out
    *
    * @default "/"
@@ -152,7 +146,6 @@ import { profile } from '../../../../src/users/users.controller';
 export type TOAuth2Provider = {
   auth: TOAuth2Url;
   token: TOAuth2Url;
-  profile: TOAuth2Url;
   // refresh: TOAuth2Url;
 
   clientId: string;
@@ -168,7 +161,6 @@ const oauth2 = <Profiles extends string>({
   host,
   redirectTo,
   storage,
-  profile,
   prefix
 }: TPluginParams<Profiles>) => {
   if (!login) {
@@ -177,10 +169,6 @@ const oauth2 = <Profiles extends string>({
 
   if (!authorized) {
     authorized = '/login/:name/authorized';
-  }
-
-  if (!profile) {
-    profile = '/user/:name/profile'
   }
 
   if (!logout) {
@@ -217,10 +205,6 @@ const oauth2 = <Profiles extends string>({
     return buildUri(login, name, external);
   }
 
-  function buildProfileUri(name: string, external: boolean = true) {
-    return buildUri(profile, name, external);
-  }
-
   function buildLogoutUri(name: string, external: boolean = true) {
     return buildUri(logout, name, external);
   }
@@ -240,6 +224,8 @@ const oauth2 = <Profiles extends string>({
         name: '@bogeychan/elysia-oauth2'
       }) as InternalOAuth2Elysia<Profiles>
     )
+    
+
       // >>> LOGIN <<<
       .get(login, async (req) => {
         
@@ -358,85 +344,64 @@ const oauth2 = <Profiles extends string>({
 
         return redirect(buildRedirectToUri(req.params));
       })
-      // >>> PROFILE <<<
-      .get(profile, async (req) => {
-        const context = resolveProvider(req.params);
 
-        if (context instanceof Response) {
-          return context;
-        }
-
-        const { provider } = context;
-
-        const token = req.params.name === 'twitch' ? await validateToken(await storage.get(req.request, req.params.name)) : isTokenValid(await storage.get(req.request, req.params.name))
-
-        if (!token) {
-          req.set.status = 'Unauthorized'
-          return {error: 401, message: "Unauthorized"}
-        }
-
-        storage.set(req.request, req.params.name, token)
-
-        const profileUrl = buildUrl(
-          provider.profile.url,
-          { login: token.login },
-          );
-
-          const user = await fetch(profileUrl, {
-            method: 'GET',
-            headers: { Authorization: `Bearer ${token?.access_token}`, 
-            // ! required for twitch oauth2
-            'Client-Id': req.params.name === 'twitch' ? env('TWITCH_OAUTH_CLIENT_ID') : undefined }
-          });
-  
-          if (user.ok) {
-            if (req.params.name === 'twitch') {
-              // ! required for twitch as you can retrieve many profiles
-            return (await user.json()).data.pop();
-          }
-
-          return (await user.json());
-          }
-  
-          req.set.status = 'Unauthorized'
-          return {error: 401, message: "Unauthorized"}
-      })
       .derive((ctx) => {
         return {
           async authorized(...profiles: Profiles[]) {
             for (const profile of profiles) {
-              if (!isTokenValid(await storage.get(ctx.request, profile))) {
+              const token = await storage.get(ctx.request, profile)
+  
+              if (!token) {
+                return false
+              }
+  
+              // ! must have for twitch as it could check token authenticity
+              if (profile === 'twitch') {
+                const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+                  headers: {Authorization: `OAuth ${token.access_token}`}
+                })
+  
+                if (response.ok) {
+                  const auth = await response.json()
+                  await storage.set(ctx.request, profile, {...token, ...auth})
+                  return true
+                }
+  
+                return false
+              }
+  
+              if (!isTokenValid(token)) {
                 return false;
               } 
             }
             return true;
           },
-
+  
           profiles<P extends Profiles = Profiles>(...profiles: P[]) {
             if (profiles.length === 0) {
               profiles = Object.keys(globalProfiles) as P[];
             }
-
+  
             const result = {} as TOAuth2ProfileUrlMap<P>;
-
+  
             for (const profile of profiles) {
               result[profile] = {
                 login: buildLoginUri(profile),
                 callback: buildRedirectUri({ name: profile }),
                 logout: buildLogoutUri(profile),
-                profile: buildProfileUri(profile)
               };
             }
-
+  
             return result;
           },
-
+  
           async tokenHeaders(profile: Profiles) {
             const token = await storage.get(ctx.request, profile);
             return { Authorization: `Bearer ${token?.access_token}` };
           },
         } as TOAuth2Request<Profiles>;
       })
+      
   );
 };
 
@@ -446,7 +411,7 @@ export * from './providers';
 // not relevant, just type declarations...
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {
-  [name in Profiles]: { login: string; callback: string; logout: string; profile: string };
+  [name in Profiles]: { login: string; callback: string; logout: string; };
 };
 
 export type TOAuth2UrlParams = Record<string, string | number | boolean>;

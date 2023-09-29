@@ -21,13 +21,7 @@ export const twitch = (): TOAuth2Provider => {
         client_id: env('TWITCH_OAUTH_CLIENT_ID'),
         client_secret: env('TWITCH_OAUTH_CLIENT_SECRET')
       }
-    },
-
-    profile: {
-      url: 'https://api.twitch.tv/helix/users',
-      params: {
-        client_id: env('TWITCH_OAUTH_CLIENT_ID')
-      }
     }
+    
   };
 };

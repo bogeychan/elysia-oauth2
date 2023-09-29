@@ -1,5 +1,7 @@
 import { Elysia } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
+import { CookieOptions, cookie as cookieManager } from '@elysiajs/cookie';
+import { JWTOption, jwt as jsonWebToken } from '@elysiajs/jwt';
 
 export type TOAuth2Request<Profile extends string> = {
   /**
@@ -55,11 +57,11 @@ export interface OAuth2Storage<Profiles extends string> {
   /**
    * Get token from storage
    */
-  get(req: Request, name: Profiles): Promise<TOAuth2AccessToken | undefined>;
+  get(req: Request, name: Profiles, id: string): Promise<TOAuth2AccessToken | undefined>;
   /**
    * Delete token in storage (most likely a logout)
    */
-  delete(req: Request, name: Profiles): Promise<void>;
+  delete(req: Request, name: Profiles, id: string): Promise<void>;
 }
 
 /**
@@ -138,6 +140,22 @@ import { profile } from '../../../../src/users/users.controller';
    * @see OAuth2Storage
    */
   storage: OAuth2Storage<Profiles>;
+  /**
+   * The JWT config values
+   * 
+   * ! It is important to customize this
+   *
+   * @default { name: 'jwt', secret: 'Fischl von Luftschloss Narfidort', exp: '1h' }
+   */
+  jwt?: JWTOption;
+  /**
+   * The JWT config values
+   * 
+   * ! It is important to customize this
+   *
+   * @default { name: 'jwt', secret: 'Fischl von Luftschloss Narfidort', exp: '1h' }
+   */
+  cookie?: CookieOptions;
 };
 
 /**
@@ -146,6 +164,7 @@ import { profile } from '../../../../src/users/users.controller';
 export type TOAuth2Provider = {
   auth: TOAuth2Url;
   token: TOAuth2Url;
+  profile: TOAuth2Url;
   // refresh: TOAuth2Url;
 
   clientId: string;
@@ -161,7 +180,9 @@ const oauth2 = <Profiles extends string>({
   host,
   redirectTo,
   storage,
-  prefix
+  prefix,
+  jwt,
+  cookie
 }: TPluginParams<Profiles>) => {
   if (!login) {
     login = '/login/:name';
@@ -169,6 +190,24 @@ const oauth2 = <Profiles extends string>({
 
   if (!authorized) {
     authorized = '/login/:name/authorized';
+  }
+
+  if (!jwt) {
+    jwt = {
+      name: 'jwt',
+      secret: 'Fischl von Luftschloss Narfidort',
+      exp: '1h'
+    };
+  }
+
+  if (!cookie) {
+    cookie = {
+      httpOnly: true,
+      maxAge: 3600,
+      secure: true,
+      secret:  'Fischl von Luftschloss Narfidort',
+      signed: true
+    }
   }
 
   if (!logout) {
@@ -224,8 +263,10 @@ const oauth2 = <Profiles extends string>({
         name: '@bogeychan/elysia-oauth2'
       }) as InternalOAuth2Elysia<Profiles>
     )
-    
-
+      .use(
+        jsonWebToken(jwt)
+      )
+      .use(cookieManager(cookie))
       // >>> LOGIN <<<
       .get(login, async (req) => {
         
@@ -327,9 +368,35 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-        storage.set(req.request, (req.params as TOAuth2Params).name, token);
+        if ((req.params as TOAuth2Params).name === 'twitch') {
+          const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+            headers: {Authorization: `OAuth ${token.access_token}`}
+          })
 
-        return redirect(buildRedirectToUri(req.params));
+          if (response.ok) {
+            const certificate = await response.json()
+            const auth = {...token, ...certificate}
+            storage.set(req.request, (req.params as TOAuth2Params).name, auth)
+
+            req.setCookie('authorize', await req.jwt.sign(auth), {})
+            req.set.status = 'Found'
+            req.set.redirect = buildRedirectToUri(req.params)
+            return { message: 'Found redirect' }
+          }
+
+          throw new Error(
+            `${response.status}: ${
+              response.statusText
+            }: ${await response.text()}`
+          );
+        }
+
+        storage.set(req.request, (req.params as TOAuth2Params).name, token);
+        req.setCookie('authorize', await req.jwt.sign(token as any))
+        req.set.status = 'Found'
+        req.set.redirect = buildRedirectToUri(req.params)
+        return { message: 'Found redirect' }
+        // return redirect(buildRedirectToUri(req.params), req.headers);
       })
 
       // >>> LOGOUT <<<
@@ -339,18 +406,20 @@ const oauth2 = <Profiles extends string>({
         if (context instanceof Response) {
           return context;
         }
+        
+        req.setCookie('authorize', null, { expires: new Date(Date.now()), maxAge: 0 })
 
-        await storage.delete(req.request, (req.params as TOAuth2Params).name);
-
-        return redirect(buildRedirectToUri(req.params));
+        req.set.status = 'OK'
+        req.set.redirect = buildRedirectToUri(req.params)
+        return { message: 'Logged out!' }
       })
 
       .derive((ctx) => {
         return {
           async authorized(...profiles: Profiles[]) {
             for (const profile of profiles) {
-              const token = await storage.get(ctx.request, profile)
-  
+              const token: any = await ctx.jwt.verify(ctx.cookie.authorize)
+
               if (!token) {
                 return false
               }
@@ -358,12 +427,10 @@ const oauth2 = <Profiles extends string>({
               // ! must have for twitch as it could check token authenticity
               if (profile === 'twitch') {
                 const response = await fetch('https://id.twitch.tv/oauth2/validate', {
-                  headers: {Authorization: `OAuth ${token.access_token}`}
+                  headers: {Authorization: `OAuth ${token?.access_token}`}
                 })
   
                 if (response.ok) {
-                  const auth = await response.json()
-                  await storage.set(ctx.request, profile, {...token, ...auth})
                   return true
                 }
   
@@ -395,8 +462,8 @@ const oauth2 = <Profiles extends string>({
             return result;
           },
   
-          async tokenHeaders(profile: Profiles) {
-            const token = await storage.get(ctx.request, profile);
+          async tokenHeaders(profile: Profiles, id: string) {
+            const token = await storage.get(ctx.request, profile, id);
             return { Authorization: `Bearer ${token?.access_token}` };
           },
         } as TOAuth2Request<Profiles>;

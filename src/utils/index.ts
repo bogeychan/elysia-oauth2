@@ -39,10 +39,13 @@ export function isTokenValid(token?: TOAuth2AccessToken) {
   if (!token) {
     return false;
   }
+
   const now = Date.now() / 1000;
   const expiry = token.created_at + token.expires_in;
+  
   if (now < expiry) {
-  return token;}
+    return token;
+  }
 
   return false
 }

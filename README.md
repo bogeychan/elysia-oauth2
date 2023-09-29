@@ -13,6 +13,7 @@ bun add @bogeychan/elysia-oauth2
 ```ts
 import { Elysia } from 'elysia';
 import oauth2, { github } from '@bogeychan/elysia-oauth2';
+import jsonwebtoken from 'jsonwebtoken'; // you can use any jwt plugin
 
 import { randomBytes } from 'crypto';
 
@@ -40,12 +41,20 @@ const auth = oauth2({
     }
   },
   storage: {
-    // storage of users' access tokens is up to you
+    // storage of users' access tokens is up to you and u can access it using cookies
     async get(req, name) {
-      return globalToken;
+      const cookies = req.headers.get('cookie');
+      const cookie = cookies?.split(' ').find(cookie => cookie.startsWith('authorize='))?.replace('authorize=', '').replace(';', '');
+      const token = jsonwebtoken.decode(cookie, String(Bun.env.JWT_SECRET));
+
+      // you can use token to fetch database profile and others
+
+      return token;
     },
     async set(req, name, token) {
       globalToken = token;
+      
+      // all of token data will be available here
     },
     async delete(req, name) {
       globalToken = null;

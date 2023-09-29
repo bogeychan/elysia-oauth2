@@ -35,26 +35,6 @@ export function redirect(location: string) {
   });
 }
 
-/**
- * Used for Twitch only
- * 
- * @param token 
- * @returns 
- */
-export async function validateToken(token?: TOAuth2AccessToken) {
-  const response = await fetch('https://id.twitch.tv/oauth2/validate', {
-    headers: {Authorization: `OAuth ${token.access_token}`}
-  })
-
-  
-  if (response.ok) {
-    const data = await response.json()
-    return {...token, ...data};
-  }
-
-  return false
-}
-
 export function isTokenValid(token?: TOAuth2AccessToken) {
   if (!token) {
     return false;

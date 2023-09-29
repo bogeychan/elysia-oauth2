@@ -141,7 +141,7 @@ import { profile } from '../../../../src/users/users.controller';
    */
   storage: OAuth2Storage<Profiles>;
   /**
-   * The JWT config values
+   * The JWT options config values
    * 
    * ! It is important to customize this
    *
@@ -149,11 +149,11 @@ import { profile } from '../../../../src/users/users.controller';
    */
   jwt?: JWTOption;
   /**
-   * The JWT config values
+   * The Cookie options config values
    * 
    * ! It is important to customize this
    *
-   * @default { name: 'jwt', secret: 'Fischl von Luftschloss Narfidort', exp: '1h' }
+   * @default { httpOnly: true, maxAge: 3600, secure: true, secret:  'Fischl von Luftschloss Narfidort', signed: true }
    */
   cookie?: CookieOptions;
 };

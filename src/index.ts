@@ -68,11 +68,11 @@ export interface OAuth2State<Profiles extends string> {
   /**
    * Generate a new unique state
    */
-  generate: (req: Request, name: Profiles) => string;
+  generate: (req: Request, name: Profiles) => string | Promise<string>;
   /**
    * Check if the state exists
    */
-  check: (req: Request, name: Profiles, state: string) => boolean;
+  check: (req: Request, name: Profiles, state: string) => boolean | Promise<boolean>;
 }
 
 type TPluginParams<Profiles extends string> = {
@@ -225,7 +225,7 @@ const oauth2 = <Profiles extends string>({
           redirect_uri: buildRedirectUri(req.params),
           response_type: 'code',
           response_mode: 'query',
-          state: state.generate(req.request, (req.params as TOAuth2Params).name)
+          state: await state.generate(req.request, (req.params as TOAuth2Params).name)
         };
 
         const authUrl = buildUrl(
@@ -252,12 +252,13 @@ const oauth2 = <Profiles extends string>({
           state: string;
         };
 
+        
         if (
-          !state.check(
-            req.request,
-            (req.params as TOAuth2Params).name,
-            callbackState
-          )
+          !(await state.check(
+                req.request,
+                (req.params as TOAuth2Params).name,
+                callbackState
+            ))
         ) {
           throw new Error('State mismatch');
         }

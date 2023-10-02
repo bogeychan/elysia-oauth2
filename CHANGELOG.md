@@ -1,3 +1,9 @@
+# 0.0.14 - 03 Oct 2023
+
+Feature:
+
+- add support for async state [#5](https://github.com/bogeychan/elysia-oauth2/pull/5)
+
 # 0.0.13 - 24 Sep 2023
 
 Bug fix:

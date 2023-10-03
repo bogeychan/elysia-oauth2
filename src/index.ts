@@ -1,7 +1,5 @@
 import { Elysia } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
-import { CookieOptions, cookie as cookieManager } from '@elysiajs/cookie';
-import { JWTOption, jwt as jsonWebToken } from '@elysiajs/jwt';
 
 export type TOAuth2Request<Profile extends string> = {
   /**
@@ -40,8 +38,7 @@ export type TOAuth2AccessToken = {
   expires_in: number;
   access_token: string;
   created_at: number;
-  refresh_token?: string;
-  login?: string;
+  // refresh_token?: string;
 };
 
 /**
@@ -237,7 +234,7 @@ const oauth2 = <Profiles extends string>({
           provider.auth.url,
           { ...authParams, ...provider.auth.params },
           scope
-          );
+        );
 
         return redirect(authUrl);
       })
@@ -285,10 +282,10 @@ const oauth2 = <Profiles extends string>({
         // ! required for reddit
         const credentials = btoa(
           provider.clientId + ':' + provider.clientSecret
-          );
+        );
           
-          const response = await fetch(provider.token.url, {
-            method: 'POST',
+        const response = await fetch(provider.token.url, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Accept: 'application/json',
@@ -315,7 +312,9 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-        return redirect(req.params);
+        storage.set(req.request, (req.params as TOAuth2Params).name, token);
+
+        return redirect(redirectTo);
       })
 
       // >>> LOGOUT <<<
@@ -328,7 +327,7 @@ const oauth2 = <Profiles extends string>({
         
         await storage.delete(req.request, (req.params as TOAuth2Params).name);
 
-        return redirect(req.params);
+        return redirect(redirectTo);
       })
 
       .derive((ctx) => {

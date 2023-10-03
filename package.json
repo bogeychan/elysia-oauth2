@@ -19,10 +19,6 @@
     "elysia": "^0.7.12",
     "typescript": "^5.2.2"
   },
-  "dependencies": {
-    "@elysiajs/cookie": "^0.7.0",
-    "@elysiajs/jwt": "^0.7.0"
-  },
   "peerDependencies": {
     "elysia": ">= 0.7.12"
   },

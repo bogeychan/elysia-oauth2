@@ -84,7 +84,6 @@ type TPluginParams<Profiles extends string> = {
    *
    * @example
    * import { github } from '@bogeychan/elysia-oauth2';
-import { profile } from '../../../../src/users/users.controller';
    *
    * const profiles = {
    *  github: {

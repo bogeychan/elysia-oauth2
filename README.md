@@ -39,7 +39,7 @@ const auth = oauth2({
     }
   },
   storage: {
-    // storage of users' access tokens is up to you and u can access it using cookies
+    // storage of users' access tokens is up to you
     async get(req, name) {
       return globalToken;
     },

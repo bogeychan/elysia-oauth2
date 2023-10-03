@@ -359,7 +359,7 @@ const oauth2 = <Profiles extends string>({
             return result;
           },
   
-          async tokenHeaders(profile: Profiles, id: string) {
+          async tokenHeaders(profile: Profiles) {
             const token = await storage.get(ctx.request, profile);
             return { Authorization: `Bearer ${token?.access_token}` };
           },

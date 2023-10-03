@@ -44,7 +44,7 @@ export function isTokenValid(token?: TOAuth2AccessToken) {
   const expiry = token.created_at + token.expires_in;
   
   if (now < expiry) {
-    return token;
+    return true;
   }
 
   return false

@@ -34,7 +34,7 @@ export type TOAuth2Request<Profile extends string> = {
  */
 export type TOAuth2AccessToken = {
   token_type: string;
-  scope: string;
+  scope: string | string[];
   expires_in: number;
   access_token: string;
   created_at: number;
@@ -211,7 +211,7 @@ const oauth2 = <Profiles extends string>({
       }) as InternalOAuth2Elysia<Profiles>
     )
       // >>> LOGIN <<<
-      .get(login, async (req) => {   
+      .get(login, async (req) => {
         const context = resolveProvider(req.params);
 
         if (context instanceof Response) {
@@ -280,7 +280,7 @@ const oauth2 = <Profiles extends string>({
         const credentials = btoa(
           provider.clientId + ':' + provider.clientSecret
         );
-          
+
         const response = await fetch(provider.token.url, {
           method: 'POST',
           headers: {
@@ -320,7 +320,7 @@ const oauth2 = <Profiles extends string>({
         if (context instanceof Response) {
           return context;
         }
-        
+
         await storage.delete(req.request, (req.params as TOAuth2Params).name);
 
         return redirect(redirectTo);
@@ -335,29 +335,33 @@ const oauth2 = <Profiles extends string>({
             }
             return true;
           },
-  
+
+          // authorize(...profiles: Profiles[]) {
+          //   throw new Error('not implemented');
+          // },
+
           profiles<P extends Profiles = Profiles>(...profiles: P[]) {
             if (profiles.length === 0) {
               profiles = Object.keys(globalProfiles) as P[];
             }
-  
+
             const result = {} as TOAuth2ProfileUrlMap<P>;
-  
+
             for (const profile of profiles) {
               result[profile] = {
                 login: buildLoginUri(profile),
                 callback: buildRedirectUri({ name: profile }),
-                logout: buildLogoutUri(profile),
+                logout: buildLogoutUri(profile)
               };
             }
-  
+
             return result;
           },
-  
-          async tokenHeaders(profile: Profiles) {
+
+          async tokenHeaders(profile) {
             const token = await storage.get(ctx.request, profile);
             return { Authorization: `Bearer ${token?.access_token}` };
-          },
+          }
         } as TOAuth2Request<Profiles>;
       })
   );
@@ -369,7 +373,7 @@ export * from './providers';
 // not relevant, just type declarations...
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {
-  [name in Profiles]: { login: string; callback: string; logout: string; };
+  [name in Profiles]: { login: string; callback: string; logout: string };
 };
 
 export type TOAuth2UrlParams = Record<string, string | number | boolean>;
@@ -396,9 +400,6 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<
   '',
   {
     store: {};
-    params: {
-      name: Profiles
-    };
     request: TOAuth2ProviderContext<Profiles>;
     schema: {};
     error: {};

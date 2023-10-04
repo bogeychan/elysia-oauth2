@@ -5,8 +5,10 @@ import oauth2, {
   github,
   spotify,
   reddit,
-  google
-} from '../src/index';
+  google,
+  twitch,
+  validateToken
+} from '../src';
 
 import { randomBytes } from 'crypto';
 import { Database } from 'bun:sqlite';
@@ -22,6 +24,8 @@ const uuid = '1f46b510-e674-4ae7-b6fc-d0872c9a4252';
 const states = new Set();
 
 const app = new Elysia();
+
+const twitchProvider = twitch();
 
 const auth = oauth2({
   profiles: {
@@ -48,6 +52,10 @@ const auth = oauth2({
     google: {
       provider: google(),
       scope: ['https://www.googleapis.com/auth/userinfo.profile']
+    },
+    twitch: {
+      provider: twitchProvider,
+      scope: ['user:read:follows']
     }
   },
   state: {
@@ -170,6 +178,19 @@ app
       return userPage(await user.json(), profiles.google.logout);
     }
 
+    if (await ctx.authorized('twitch')) {
+      const tokenHeaders = await ctx.tokenHeaders('twitch');
+
+      if ((await validateToken(tokenHeaders)).status === 200) {
+        // https://dev.twitch.tv/docs/api/reference/#get-users
+        const user = await fetch('https://api.twitch.tv/helix/users', {
+          headers: { 'Client-Id': twitchProvider.clientId, ...tokenHeaders }
+        });
+
+        return userPage(await user.json(), profiles.twitch.logout);
+      }
+    }
+
     const html = `<!DOCTYPE html>
     <html lang="en">
     <body>
@@ -187,3 +208,4 @@ app
   .listen(3000);
 
 console.log(`http://localhost:3000`);
+

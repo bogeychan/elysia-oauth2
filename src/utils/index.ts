@@ -1,12 +1,13 @@
 import type { TOAuth2UrlParams, TOAuth2Scope, TOAuth2AccessToken } from '..';
 
-export function env(name: string) {
+export function env(name: string): string {
   if (!(name in process.env)) {
     throw new Error(
       `.env variable '${name}' is required but could not be found`
     );
   }
-  return process.env[name];
+
+  return process.env[name]!;
 }
 
 export function buildUrl(
@@ -43,3 +44,4 @@ export function isTokenValid(token?: TOAuth2AccessToken) {
   const expiry = token.created_at + token.expires_in;
   return now < expiry;
 }
+

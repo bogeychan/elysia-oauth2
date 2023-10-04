@@ -4,3 +4,4 @@ export * from './discord';
 export * from './spotify';
 export * from './reddit';
 export * from './google';
+export * from './twitch';

@@ -34,7 +34,7 @@ export type TOAuth2Request<Profile extends string> = {
  */
 export type TOAuth2AccessToken = {
   token_type: string;
-  scope: string;
+  scope: string | string[];
   expires_in: number;
   access_token: string;
   created_at: number;
@@ -344,7 +344,7 @@ const oauth2 = <Profiles extends string>({
           },
 
           // authorize(...profiles: Profiles[]) {
-          //   throw new Error('not implementd');
+          //   throw new Error('not implemented');
           // },
 
           profiles<P extends Profiles = Profiles>(...profiles: P[]) {
@@ -365,7 +365,7 @@ const oauth2 = <Profiles extends string>({
             return result;
           },
 
-          async tokenHeaders(profile: Profiles) {
+          async tokenHeaders(profile) {
             const token = await storage.get(ctx.request, profile);
             return { Authorization: `Bearer ${token?.access_token}` };
           }

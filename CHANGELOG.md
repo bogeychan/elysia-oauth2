@@ -1,3 +1,9 @@
+# 0.0.15 - 04 Oct 2023
+
+Feature:
+
+- twitch oauth2 provider [#4](https://github.com/bogeychan/elysia-oauth2/pull/4)
+
 # 0.0.14 - 03 Oct 2023
 
 Feature:

@@ -38,7 +38,7 @@ export type TOAuth2AccessToken = {
   expires_in: number;
   access_token: string;
   created_at: number;
-  // refresh_token?: string;
+  // refresh_token: string;
 };
 
 /**
@@ -152,7 +152,7 @@ const oauth2 = <Profiles extends string>({
   logout,
   host,
   redirectTo,
-  storage,
+  storage
 }: TPluginParams<Profiles>) => {
   if (!login) {
     login = '/login/:name';
@@ -210,10 +210,8 @@ const oauth2 = <Profiles extends string>({
         name: '@bogeychan/elysia-oauth2'
       }) as InternalOAuth2Elysia<Profiles>
     )
-
       // >>> LOGIN <<<
-      .get(login, async (req) => {
-        
+      .get(login, async (req) => {   
         const context = resolveProvider(req.params);
 
         if (context instanceof Response) {
@@ -278,7 +276,6 @@ const oauth2 = <Profiles extends string>({
           ...provider.token.params
         });
 
-        
         // ! required for reddit
         const credentials = btoa(
           provider.clientId + ':' + provider.clientSecret
@@ -293,8 +290,7 @@ const oauth2 = <Profiles extends string>({
           },
           body: params.toString()
         });
-        
-        
+
         if (
           !response.ok ||
           !response.headers.get('Content-Type')?.startsWith('application/json')
@@ -329,7 +325,6 @@ const oauth2 = <Profiles extends string>({
 
         return redirect(redirectTo);
       })
-
       .derive((ctx) => {
         return {
           async authorized(...profiles: Profiles[]) {
@@ -365,7 +360,6 @@ const oauth2 = <Profiles extends string>({
           },
         } as TOAuth2Request<Profiles>;
       })
-      
   );
 };
 

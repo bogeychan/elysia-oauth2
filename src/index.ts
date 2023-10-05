@@ -327,9 +327,9 @@ const oauth2 = <Profiles extends string>({
 
         await storage.set(req, (req.params as TOAuth2Params).name, token);
 
-        req.set.redirect = redirectTo
-        req.set.status = 'Found'
-        return ''
+        req.set.redirect = redirectTo;
+        req.set.status = 'Found';
+        return '';
       })
 
       // >>> LOGOUT <<<
@@ -342,9 +342,9 @@ const oauth2 = <Profiles extends string>({
 
         await storage.delete(req, (req.params as TOAuth2Params).name);
 
-        req.set.redirect = redirectTo
-        req.set.status = 'Found'
-        return ''
+        req.set.redirect = redirectTo;
+        req.set.status = 'Found';
+        return '';
       })
       .derive((ctx) => {
         return {

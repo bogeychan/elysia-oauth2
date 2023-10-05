@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia';
+import { Context, Elysia } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -50,15 +50,15 @@ export interface OAuth2Storage<Profiles extends string> {
   /**
    * Write token to storage (most likely a login)
    */
-  set(req: Request, name: Profiles, token: TOAuth2AccessToken): Promise<void>;
+  set(req: Context, name: Profiles, token: TOAuth2AccessToken): Promise<void>;
   /**
    * Get token from storage
    */
-  get(req: Request, name: Profiles): Promise<TOAuth2AccessToken | undefined>;
+  get(req: Context, name: Profiles): Promise<TOAuth2AccessToken | undefined>;
   /**
    * Delete token in storage (most likely a logout)
    */
-  delete(req: Request, name: Profiles): Promise<void>;
+  delete(req: Context, name: Profiles): Promise<void>;
 }
 
 /**
@@ -211,7 +211,17 @@ const oauth2 = <Profiles extends string>({
   return (
     (
       new Elysia({
-        name: '@bogeychan/elysia-oauth2'
+        name: '@bogeychan/elysia-oauth2',
+        seed: {
+          profiles: globalProfiles,
+          state,
+          login,
+          authorized,
+          logout,
+          host,
+          redirectTo,
+          storage
+        }
       }) as InternalOAuth2Elysia<Profiles>
     )
       // >>> LOGIN <<<
@@ -315,9 +325,11 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-        storage.set(req.request, (req.params as TOAuth2Params).name, token);
+        await storage.set(req, (req.params as TOAuth2Params).name, token);
 
-        return redirect(redirectTo);
+        req.set.redirect = redirectTo
+        req.set.status = 'Found'
+        return ''
       })
 
       // >>> LOGOUT <<<
@@ -328,15 +340,17 @@ const oauth2 = <Profiles extends string>({
           return context;
         }
 
-        await storage.delete(req.request, (req.params as TOAuth2Params).name);
+        await storage.delete(req, (req.params as TOAuth2Params).name);
 
-        return redirect(redirectTo);
+        req.set.redirect = redirectTo
+        req.set.status = 'Found'
+        return ''
       })
       .derive((ctx) => {
         return {
           async authorized(...profiles: Profiles[]) {
             for (const profile of profiles) {
-              if (!isTokenValid(await storage.get(ctx.request, profile))) {
+              if (!isTokenValid(await storage.get(ctx, profile))) {
                 return false;
               }
             }
@@ -366,7 +380,7 @@ const oauth2 = <Profiles extends string>({
           },
 
           async tokenHeaders(profile) {
-            const token = await storage.get(ctx.request, profile);
+            const token = await storage.get(ctx, profile);
             return { Authorization: `Bearer ${token?.access_token}` };
           }
         } as TOAuth2Request<Profiles>;

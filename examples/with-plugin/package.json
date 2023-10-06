@@ -1,0 +1,18 @@
+{
+  "name": "with-plugin",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@bogeychan/elysia-oauth2": "../..",
+    "@elysiajs/html": "^0.7.0",
+    "@kitajs/html": "^3.0.1",
+    "@kitajs/ts-html-plugin": "^1.2.0",
+    "elysia": "^0.7.15"
+  }
+}

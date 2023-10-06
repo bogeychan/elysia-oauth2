@@ -120,6 +120,61 @@ app
 	.listen(3000)
 ```
 
+## Use custom plugins in `Storage` and `State`
+
+```ts
+import oauth2, {
+	github,
+	type InferContext,
+	type TOAuth2AccessToken
+} from '@bogeychan/elysia-oauth2'
+
+const mySessionPLugin = new Elysia().derive((ctx) => ({
+	session: {
+		getOAuthToken(name: string): TOAuth2AccessToken {
+			const sessionId = ctx.cookie['session-id'].value
+			return // TODO
+		},
+		setOAuthToken(name: string, token: TOAuth2AccessToken) {
+			// TODO
+		},
+		deleteOAuthToken(name: string) {
+			// TODO
+		}
+	}
+}))
+
+const app = new Elysia().use(mySessionPLugin)
+
+const auth = oauth2({
+	profiles: {
+		github: {
+			provider: github(),
+			scope: ['user']
+		}
+	},
+	state: {
+		check(ctx, name, state) {
+			return state === globalState
+		},
+		generate(ctx, name) {
+			return globalState
+		}
+	},
+	storage: {
+		get(ctx: InferContext<typeof app>, name) {
+			return ctx.session.getOAuthToken(name)
+		},
+		set(ctx: InferContext<typeof app>, name, token) {
+			ctx.session.setOAuthToken(name, token)
+		},
+		delete(ctx: InferContext<typeof app>, name) {
+			ctx.session.deleteOAuthToken(name)
+		}
+	}
+})
+```
+
 ## Use predefined OAuth 2.0 providers
 
 ```ts

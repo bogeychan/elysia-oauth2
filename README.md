@@ -107,7 +107,7 @@ console.log('Listening on http://localhost:3000')
    GITHUB_OAUTH_CLIENT_SECRET=client secret
    ```
 
-4. [Bun](https://bun.sh/docs/cli/run#environment-variables) automatically loads environment variables from `.env` files
+4. [Bun](https://bun.sh/docs/runtime/env) automatically loads environment variables from `.env` files
 
 If you are unsure which URL should be used as `Authorization callback URL` call `ctx.profiles()` without an argument to get all URLs of all registered OAuth 2.0 Profiles:
 
@@ -164,10 +164,6 @@ const auth = oauth2({
 	// ...
 })
 ```
-
-## Author
-
-[bogeychan](https://github.com/bogeychan)
 
 ## License
 

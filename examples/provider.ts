@@ -35,21 +35,21 @@ const auth = oauth2({
     }
   },
   state: {
-    check(req, name, state) {
+    check(ctx, name, state) {
       return state === globalState;
     },
-    generate(req, name) {
+    generate(ctx, name) {
       return globalState;
     }
   },
   storage: {
-    async get(req, name) {
+    async get(ctx, name) {
       return globalToken;
     },
-    async set(req, name, token) {
+    async set(ctx, name, token) {
       globalToken = token;
     },
-    async delete(req, name) {
+    async delete(ctx, name) {
       globalToken = null;
     }
   }
@@ -92,4 +92,5 @@ app
   })
   .listen(3000);
 
-console.log(`http://localhost:3000`);
+console.log(`http://${app.server!.hostname}:${app.server!.port}`);
+

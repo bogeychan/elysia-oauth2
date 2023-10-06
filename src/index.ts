@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia';
+import { Elysia, type Context, type DecoratorBase } from 'elysia';
 import { buildUrl, isTokenValid, redirect } from './utils';
 
 export type TOAuth2Request<Profile extends string> = {
@@ -50,15 +50,15 @@ export interface OAuth2Storage<Profiles extends string> {
   /**
    * Write token to storage (most likely a login)
    */
-  set(req: Request, name: Profiles, token: TOAuth2AccessToken): Promise<void>;
+  set(ctx: Context, name: Profiles, token: TOAuth2AccessToken): Promise<void>;
   /**
    * Get token from storage
    */
-  get(req: Request, name: Profiles): Promise<TOAuth2AccessToken | undefined>;
+  get(ctx: Context, name: Profiles): Promise<TOAuth2AccessToken | undefined>;
   /**
    * Delete token in storage (most likely a logout)
    */
-  delete(req: Request, name: Profiles): Promise<void>;
+  delete(ctx: Context, name: Profiles): Promise<void>;
 }
 
 /**
@@ -68,12 +68,12 @@ export interface OAuth2State<Profiles extends string> {
   /**
    * Generate a new unique state
    */
-  generate: (req: Request, name: Profiles) => string | Promise<string>;
+  generate: (ctx: Context, name: Profiles) => string | Promise<string>;
   /**
    * Check if the state exists
    */
   check: (
-    req: Request,
+    ctx: Context,
     name: Profiles,
     state: string
   ) => boolean | Promise<boolean>;
@@ -215,8 +215,8 @@ const oauth2 = <Profiles extends string>({
       }) as InternalOAuth2Elysia<Profiles>
     )
       // >>> LOGIN <<<
-      .get(login, async (req) => {
-        const context = resolveProvider(req.params);
+      .get(login, async (ctx) => {
+        const context = resolveProvider(ctx.params);
 
         if (context instanceof Response) {
           return context;
@@ -226,13 +226,10 @@ const oauth2 = <Profiles extends string>({
 
         const authParams = {
           client_id: provider.clientId,
-          redirect_uri: buildRedirectUri(req.params),
+          redirect_uri: buildRedirectUri(ctx.params),
           response_type: 'code',
           response_mode: 'query',
-          state: await state.generate(
-            req.request,
-            (req.params as TOAuth2Params).name
-          )
+          state: await state.generate(ctx, (ctx.params as TOAuth2Params).name)
         };
 
         const authUrl = buildUrl(
@@ -245,8 +242,8 @@ const oauth2 = <Profiles extends string>({
       })
 
       // >>> AUTHORIZED <<<
-      .get(authorized, async (req) => {
-        const context = resolveProvider(req.params);
+      .get(authorized, async (ctx) => {
+        const context = resolveProvider(ctx.params);
 
         if (context instanceof Response) {
           return context;
@@ -254,15 +251,15 @@ const oauth2 = <Profiles extends string>({
 
         const { provider } = context;
 
-        const { code, state: callbackState } = req.query as {
+        const { code, state: callbackState } = ctx.query as {
           code: string;
           state: string;
         };
 
         if (
           !(await state.check(
-            req.request,
-            (req.params as TOAuth2Params).name,
+            ctx,
+            (ctx.params as TOAuth2Params).name,
             callbackState
           ))
         ) {
@@ -272,7 +269,7 @@ const oauth2 = <Profiles extends string>({
         const tokenParams = {
           client_id: provider.clientId,
           client_secret: provider.clientSecret,
-          redirect_uri: buildRedirectUri(req.params),
+          redirect_uri: buildRedirectUri(ctx.params),
           grant_type: 'authorization_code',
           // ! google requires decoded auth code
           code: decodeURIComponent(code)
@@ -315,28 +312,30 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-        storage.set(req.request, (req.params as TOAuth2Params).name, token);
+        storage.set(ctx, (ctx.params as TOAuth2Params).name, token);
 
         return redirect(redirectTo);
       })
 
       // >>> LOGOUT <<<
-      .get(logout, async (req) => {
-        const context = resolveProvider(req.params);
+      .get(logout, async (ctx) => {
+        const context = resolveProvider(ctx.params);
 
         if (context instanceof Response) {
           return context;
         }
 
-        await storage.delete(req.request, (req.params as TOAuth2Params).name);
+        await storage.delete(ctx, (ctx.params as TOAuth2Params).name);
 
         return redirect(redirectTo);
       })
+
+      // >>> CONTEXT API <<<
       .derive((ctx) => {
         return {
           async authorized(...profiles: Profiles[]) {
             for (const profile of profiles) {
-              if (!isTokenValid(await storage.get(ctx.request, profile))) {
+              if (!isTokenValid(await storage.get(ctx, profile))) {
                 return false;
               }
             }
@@ -366,7 +365,7 @@ const oauth2 = <Profiles extends string>({
           },
 
           async tokenHeaders(profile) {
-            const token = await storage.get(ctx.request, profile);
+            const token = await storage.get(ctx, profile);
             return { Authorization: `Bearer ${token?.access_token}` };
           }
         } as TOAuth2Request<Profiles>;
@@ -378,6 +377,16 @@ export default oauth2;
 export * from './providers';
 
 // not relevant, just type declarations...
+
+export type InferContext<T extends Elysia> = T extends Elysia<
+  infer Path,
+  infer Decorators,
+  infer _Definitions,
+  infer _ParentSchema,
+  infer Routes
+>
+  ? Context<Routes, DecoratorBase, Path> & Partial<Decorators['request']>
+  : never;
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {
   [name in Profiles]: { login: string; callback: string; logout: string };

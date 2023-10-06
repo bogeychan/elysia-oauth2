@@ -59,7 +59,7 @@ const auth = oauth2({
     }
   },
   state: {
-    check(req, name, state) {
+    check(ctx, name, state) {
       if (states.has(state)) {
         states.delete(state);
         return true;
@@ -67,14 +67,14 @@ const auth = oauth2({
 
       return false;
     },
-    generate(req, name) {
+    generate(ctx, name) {
       const state = randomBytes(8).toString('hex');
       states.add(state);
       return state;
     }
   },
   storage: {
-    async get(req, name) {
+    async get(ctx, name) {
       console.log(`get token: ${name}`);
 
       const token = (
@@ -89,7 +89,7 @@ const auth = oauth2({
 
       return JSON.parse(token);
     },
-    async set(req, name, token) {
+    async set(ctx, name, token) {
       console.log(`new token: ${name}`);
 
       db.run(
@@ -97,7 +97,7 @@ const auth = oauth2({
         [uuid, name, JSON.stringify(token)]
       );
     },
-    async delete(req, name) {
+    async delete(ctx, name) {
       db.run('DELETE FROM storage WHERE uuid = ? AND name = ?', [uuid, name]);
     }
   }
@@ -207,5 +207,5 @@ app
   })
   .listen(3000);
 
-console.log(`http://localhost:3000`);
+console.log(`http://${app.server!.hostname}:${app.server!.port}`);
 

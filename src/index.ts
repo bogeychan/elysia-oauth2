@@ -161,25 +161,11 @@ const oauth2 = <Profiles extends string>({
 	redirectTo,
 	storage
 }: TPluginParams<Profiles>) => {
-	if (!login) {
-		login = '/login/:name'
-	}
-
-	if (!authorized) {
-		authorized = '/login/:name/authorized'
-	}
-
-	if (!logout) {
-		logout = '/logout/:name'
-	}
-
-	if (!host) {
-		host = 'localhost:3000'
-	}
-
-	if (!redirectTo) {
-		redirectTo = '/'
-	}
+	login ??= '/login/:name'
+	authorized ??= '/login/:name/authorized'
+	logout ??= '/logout/:name'
+	host ??= 'localhost:3000'
+	redirectTo ??= '/'
 
 	type TOAuth2Params = TOAuth2ProviderContext<Profiles>['params']
 

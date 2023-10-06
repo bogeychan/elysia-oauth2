@@ -24,13 +24,13 @@ const auth = oauth2({
     }
   },
   storage: {
-    async get(ctx, name) {
+    get(ctx, name) {
       return globalToken;
     },
-    async set(ctx, name, token) {
+    set(ctx, name, token) {
       globalToken = token;
     },
-    async delete(ctx, name) {
+    delete(ctx, name) {
       globalToken = null;
     }
   }

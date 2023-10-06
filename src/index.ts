@@ -50,15 +50,22 @@ export interface OAuth2Storage<Profiles extends string> {
   /**
    * Write token to storage (most likely a login)
    */
-  set(ctx: Context, name: Profiles, token: TOAuth2AccessToken): Promise<void>;
+  set(
+    ctx: Context,
+    name: Profiles,
+    token: TOAuth2AccessToken
+  ): PromiseOrNow<void>;
   /**
    * Get token from storage
    */
-  get(ctx: Context, name: Profiles): Promise<TOAuth2AccessToken | undefined>;
+  get(
+    ctx: Context,
+    name: Profiles
+  ): PromiseOrNow<TOAuth2AccessToken | undefined>;
   /**
    * Delete token in storage (most likely a logout)
    */
-  delete(ctx: Context, name: Profiles): Promise<void>;
+  delete(ctx: Context, name: Profiles): PromiseOrNow<void>;
 }
 
 /**
@@ -68,15 +75,11 @@ export interface OAuth2State<Profiles extends string> {
   /**
    * Generate a new unique state
    */
-  generate: (ctx: Context, name: Profiles) => string | Promise<string>;
+  generate: (ctx: Context, name: Profiles) => PromiseOrNow<string>;
   /**
    * Check if the state exists
    */
-  check: (
-    ctx: Context,
-    name: Profiles,
-    state: string
-  ) => boolean | Promise<boolean>;
+  check: (ctx: Context, name: Profiles, state: string) => PromiseOrNow<boolean>;
 }
 
 type TPluginParams<Profiles extends string> = {
@@ -427,3 +430,4 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<
   }
 >;
 
+type PromiseOrNow<T> = T | Promise<T>;

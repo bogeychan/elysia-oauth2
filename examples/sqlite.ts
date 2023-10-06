@@ -74,7 +74,7 @@ const auth = oauth2({
     }
   },
   storage: {
-    async get(ctx, name) {
+    get(ctx, name) {
       console.log(`get token: ${name}`);
 
       const token = (
@@ -89,7 +89,7 @@ const auth = oauth2({
 
       return JSON.parse(token);
     },
-    async set(ctx, name, token) {
+    set(ctx, name, token) {
       console.log(`new token: ${name}`);
 
       db.run(
@@ -97,7 +97,7 @@ const auth = oauth2({
         [uuid, name, JSON.stringify(token)]
       );
     },
-    async delete(ctx, name) {
+    delete(ctx, name) {
       db.run('DELETE FROM storage WHERE uuid = ? AND name = ?', [uuid, name]);
     }
   }

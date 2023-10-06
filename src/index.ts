@@ -312,7 +312,7 @@ const oauth2 = <Profiles extends string>({
         token.expires_in = token.expires_in ?? 3600;
         token.created_at = Date.now() / 1000;
 
-        storage.set(ctx, (ctx.params as TOAuth2Params).name, token);
+        await storage.set(ctx, (ctx.params as TOAuth2Params).name, token);
 
         return redirect(redirectTo);
       })

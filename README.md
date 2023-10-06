@@ -11,89 +11,89 @@ bun add @bogeychan/elysia-oauth2
 ## Usage
 
 ```ts
-import { Elysia } from 'elysia';
-import oauth2, { github } from '@bogeychan/elysia-oauth2';
+import { Elysia } from 'elysia'
+import oauth2, { github } from '@bogeychan/elysia-oauth2'
 
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'crypto'
 
-const globalState = randomBytes(8).toString('hex');
-let globalToken = null;
+const globalState = randomBytes(8).toString('hex')
+let globalToken = null
 
-const app = new Elysia();
+const app = new Elysia()
 
 const auth = oauth2({
-  profiles: {
-    // define multiple OAuth 2.0 profiles
-    github: {
-      provider: github(),
-      scope: ['user']
-    }
-  },
-  state: {
-    // custom state verification between requests
-    check(req, name, state) {
-      return state === globalState;
-    },
-    generate(req, name) {
-      return globalState;
-    }
-  },
-  storage: {
-    // storage of users' access tokens is up to you
-    async get(req, name) {
-      return globalToken;
-    },
-    async set(req, name, token) {
-      globalToken = token;
-    },
-    async delete(req, name) {
-      globalToken = null;
-    }
-  }
-});
+	profiles: {
+		// define multiple OAuth 2.0 profiles
+		github: {
+			provider: github(),
+			scope: ['user']
+		}
+	},
+	state: {
+		// custom state verification between requests
+		check(ctx, name, state) {
+			return state === globalState
+		},
+		generate(ctx, name) {
+			return globalState
+		}
+	},
+	storage: {
+		// storage of users' access tokens is up to you
+		get(ctx, name) {
+			return globalToken
+		},
+		set(ctx, name, token) {
+			globalToken = token
+		},
+		delete(ctx, name) {
+			globalToken = null
+		}
+	}
+})
 
 function userPage(user: {}, logout: string) {
-  const html = `<!DOCTYPE html>
+	const html = `<!DOCTYPE html>
     <html lang="en">
     <body>
       User:
       <pre>${JSON.stringify(user, null, '\t')}</pre>
       <a href="${logout}">Logout</a>
     </body>
-    </html>`;
+    </html>`
 
-  return new Response(html, { headers: { 'Content-Type': 'text/html' } });
+	return new Response(html, { headers: { 'Content-Type': 'text/html' } })
 }
 
 app
-  .use(auth)
-  .get('/', async (ctx) => {
-    // get login, callback, logout urls for one or more OAuth 2.0 profiles
-    const profiles = ctx.profiles('github');
+	.use(auth)
+	.get('/', async (ctx) => {
+		// get login, callback, logout urls for one or more OAuth 2.0 profiles
+		const profiles = ctx.profiles('github')
 
-    // check if one or more OAuth 2.0 profiles are authorized
-    if (await ctx.authorized('github')) {
-      const user = await fetch('https://api.github.com/user', {
-        // ... and use the Authorization header afterwards
-        headers: await ctx.tokenHeaders('github')
-      });
+		// check if one or more OAuth 2.0 profiles are authorized
+		if (await ctx.authorized('github')) {
+			const user = await fetch('https://api.github.com/user', {
+				// ... and use the Authorization header afterwards
+				headers: await ctx.tokenHeaders('github')
+			})
 
-      return userPage(await user.json(), profiles.github.logout);
-    }
+			return userPage(await user.json(), profiles.github.logout)
+		}
 
-    // Render login page
-    const html = `<!DOCTYPE html>
+		// Render login page
+		const html = `<!DOCTYPE html>
     <html lang="en">
     <body>
       <h2>Login with <a href="${profiles.github.login}">Github</a></h2>
     </body>
-    </html>`;
+    </html>`
 
-    return new Response(html, { headers: { 'Content-Type': 'text/html' } });
-  })
-  .listen(3000);
+		return new Response(html, { headers: { 'Content-Type': 'text/html' } })
+	})
+	.listen(3000)
 
-console.log('Listening on http://localhost:3000');
+console.log('Listening on http://localhost:3000')
 ```
 
 ## Where are the client credentials?
@@ -113,11 +113,11 @@ If you are unsure which URL should be used as `Authorization callback URL` call 
 
 ```ts
 app
-  .use(auth)
-  .get('/', (ctx) => {
-    return ctx.profiles();
-  })
-  .listen(3000);
+	.use(auth)
+	.get('/', (ctx) => {
+		return ctx.profiles()
+	})
+	.listen(3000)
 ```
 
 ## Use predefined OAuth 2.0 providers
@@ -133,36 +133,36 @@ import { azure, discord, github, ... } from '@bogeychan/elysia-oauth2';
 ## Define your own OAuth 2.0 provider
 
 ```ts
-import oauth2, { TOAuth2Provider } from '@bogeychan/elysia-oauth2';
+import oauth2, { TOAuth2Provider } from '@bogeychan/elysia-oauth2'
 
 function myGithub(): TOAuth2Provider {
-  return {
-    clientId: 'YOUR_CLIENT_ID',
-    clientSecret: 'YOUR_CLIENT_SECRET',
+	return {
+		clientId: 'YOUR_CLIENT_ID',
+		clientSecret: 'YOUR_CLIENT_SECRET',
 
-    auth: {
-      url: 'https://github.com/login/oauth/authorize',
-      params: {
-        allow_signup: true
-      }
-    },
+		auth: {
+			url: 'https://github.com/login/oauth/authorize',
+			params: {
+				allow_signup: true
+			}
+		},
 
-    token: {
-      url: 'https://github.com/login/oauth/access_token',
-      params: {}
-    }
-  };
+		token: {
+			url: 'https://github.com/login/oauth/access_token',
+			params: {}
+		}
+	}
 }
 
 const auth = oauth2({
-  profiles: {
-    github: {
-      provider: myGithub(),
-      scope: ['user']
-    }
-  }
-  // ...
-});
+	profiles: {
+		github: {
+			provider: myGithub(),
+			scope: ['user']
+		}
+	}
+	// ...
+})
 ```
 
 ## Author

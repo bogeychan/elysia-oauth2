@@ -2,6 +2,8 @@
 .gitignore
 .env
 
+.prettierrc
+
 bun.lockb
 node_modules
 

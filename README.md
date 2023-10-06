@@ -2,6 +2,8 @@
 
 A plugin for [Elysia.js](https://elysiajs.com) for server-side [OAuth 2.0 Authorization Code Flow](https://www.oauth.com/oauth2-servers/server-side-apps/authorization-code)
 
+## [Migration guide](./MIGRATION.md)
+
 ## Installation
 
 ```bash

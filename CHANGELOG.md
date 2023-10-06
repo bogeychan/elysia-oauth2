@@ -1,3 +1,24 @@
+# 0.0.16 - 06 Oct 2023
+
+Feature:
+
+- make `async` optional in `Storage`
+
+Improvement:
+
+- added [Migration guide](./MIGRATION.md)
+- added [Prettier config](./.prettierrc)
+
+Bug fix:
+
+- await `storage.set`
+
+Breaking Change:
+
+- pass `Context` to `Sate` and `Storage` instead of `Request`
+
+  For more details checkout the [migration guide](./MIGRATION.md)
+
 # 0.0.15 - 04 Oct 2023
 
 Feature:

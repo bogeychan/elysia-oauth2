@@ -3,6 +3,8 @@
 .env
 
 .prettierrc
+MIGRATION.md
+CHANGELOG.md
 
 bun.lockb
 node_modules

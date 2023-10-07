@@ -303,7 +303,9 @@ const oauth2 = <Profiles extends string>({
 
 				await storage.set(ctx, (ctx.params as TOAuth2Params).name, token)
 
-				return redirect(redirectTo)
+				ctx.set.status = 'Found'
+				ctx.set.redirect = redirectTo;
+				return ''
 			})
 
 			// >>> LOGOUT <<<
@@ -316,7 +318,9 @@ const oauth2 = <Profiles extends string>({
 
 				await storage.delete(ctx, (ctx.params as TOAuth2Params).name)
 
-				return redirect(redirectTo)
+				ctx.set.status = 'Found'
+				ctx.set.redirect = redirectTo;
+				return ''
 			})
 
 			// >>> CONTEXT API <<<

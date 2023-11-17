@@ -173,15 +173,6 @@ const oauth2 = <Profiles extends string>({
 
 	const protocol = host.startsWith('localhost') ? 'http' : 'https'
 
-	function resolveProvider({
-		name
-	}: TOAuth2ProviderContext<Profiles>['params']): TOAuth2Profile | Response {
-		if (!(name in globalProfiles)) {
-			return new Response('', { status: 404, statusText: 'Not Found' })
-		}
-		return globalProfiles[name]
-	}
-
 	function buildUri(template: string, name: string, external: boolean = true) {
 		const uri = template.replace(':name', name)
 		return external ? `${protocol}://${host}${uri}` : uri

@@ -1,4 +1,4 @@
-import { Elysia, type Context, type DecoratorBase } from 'elysia'
+import { Elysia, NotFoundError, type Context, type DecoratorBase } from 'elysia'
 import { buildUrl, isTokenValid, redirect } from './utils'
 
 export type TOAuth2Request<Profile extends string> = {
@@ -151,6 +151,8 @@ export type TOAuth2Provider = {
 	clientSecret: string
 }
 
+
+
 const oauth2 = <Profiles extends string>({
 	profiles: globalProfiles,
 	state,
@@ -185,103 +187,84 @@ const oauth2 = <Profiles extends string>({
 		return external ? `${protocol}://${host}${uri}` : uri
 	}
 
-	function buildLoginUri(name: string, external: boolean = true) {
-		return buildUri(login, name, external)
-	}
-
-	function buildLogoutUri(name: string, external: boolean = true) {
-		return buildUri(logout, name, external)
-	}
-
 	function buildRedirectUri({ name }: TOAuth2Params) {
 		return buildUri(authorized, name, true)
 	}
 
 	return (
-		(
-			new Elysia({
-				name: '@bogeychan/elysia-oauth2'
-			}) as InternalOAuth2Elysia<Profiles>
-		)
+		new Elysia({
+			name: '@bogeychan/elysia-oauth2'
+		}) as InternalOAuth2Elysia<Profiles>
+	)
+		.guard({}, app => app
+
+			.derive((ctx) => {
+
+				const { name } = ctx.params as TOAuth2Params
+				if (!(name in globalProfiles)) throw new NotFoundError("Profile not found.")
+
+				return {
+					profile: globalProfiles[name],
+					checkStateOnAuthorized: async () => {
+						const { query: { code, state: callbackState } } = ctx;
+						if (
+							!(await state.check(
+								ctx,
+								name,
+								callbackState
+							))
+						) {
+							throw new Error('State mismatch')
+						}
+					}
+				}
+			})
+
 			// >>> LOGIN <<<
 			.get(login, async (ctx) => {
-				const context = resolveProvider(ctx.params)
+				const { profile: { provider, scope } } = ctx
+				const { clientId: client_id, auth: { url, params } } = provider
+				const { name } = ctx.params as TOAuth2Params
 
-				if (context instanceof Response) {
-					return context
-				}
-
-				const { provider, scope } = context
-
-				const authParams = {
-					client_id: provider.clientId,
+				return redirect(buildUrl(url, {
+					client_id,
 					redirect_uri: buildRedirectUri(ctx.params),
 					response_type: 'code',
 					response_mode: 'query',
-					state: await state.generate(ctx, (ctx.params as TOAuth2Params).name)
-				}
-
-				const authUrl = buildUrl(
-					provider.auth.url,
-					{ ...authParams, ...provider.auth.params },
-					scope
-				)
-
-				return redirect(authUrl)
+					state: await state.generate(ctx, name),
+					...params
+				}, scope))
 			})
 
 			// >>> AUTHORIZED <<<
 			.get(authorized, async (ctx) => {
-				const context = resolveProvider(ctx.params)
+				const { profile: { provider }, query: { code }, checkStateOnAuthorized } = ctx
 
-				if (context instanceof Response) {
-					return context
-				}
+				await checkStateOnAuthorized()
 
-				const { provider } = context
-
-				const { code, state: callbackState } = ctx.query as {
-					code: string
-					state: string
-				}
-
-				if (
-					!(await state.check(
-						ctx,
-						(ctx.params as TOAuth2Params).name,
-						callbackState
-					))
-				) {
-					throw new Error('State mismatch')
-				}
-
-				const tokenParams = {
-					client_id: provider.clientId,
-					client_secret: provider.clientSecret,
-					redirect_uri: buildRedirectUri(ctx.params),
-					grant_type: 'authorization_code',
-					// ! google requires decoded auth code
-					code: decodeURIComponent(code)
-				}
-
-				const params = new URLSearchParams({
-					...tokenParams,
-					...provider.token.params
-				})
+				const { clientId: client_id, clientSecret: client_secret, token: { params, url } } = provider
 
 				// ! required for reddit
 				const credentials = btoa(
 					provider.clientId + ':' + provider.clientSecret
 				)
 
-				const response = await fetch(provider.token.url, {
+				const response = await fetch(url, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/x-www-form-urlencoded',
 						Accept: 'application/json',
 						Authorization: `Basic ${credentials}`
 					},
-					body: params.toString()
+					body: new URLSearchParams({
+						client_id,
+						client_secret,
+						redirect_uri: buildRedirectUri(ctx.params),
+						grant_type: 'authorization_code',
+						// ! google requires decoded auth code
+						code: decodeURIComponent(code),
+						...params
+					}).toString()
 				})
 
 				if (
@@ -308,58 +291,53 @@ const oauth2 = <Profiles extends string>({
 
 			// >>> LOGOUT <<<
 			.get(logout, async (ctx) => {
-				const context = resolveProvider(ctx.params)
-
-				if (context instanceof Response) {
-					return context
-				}
-
-				await storage.delete(ctx, (ctx.params as TOAuth2Params).name)
-
+				const { name } = ctx.params as TOAuth2Params
+				await storage.delete(ctx, name)
 				return redirect(redirectTo)
 			})
+		) 
+		// end guard
 
-			// >>> CONTEXT API <<<
-			.derive((ctx) => {
-				return {
-					async authorized(...profiles: Profiles[]) {
-						for (const profile of profiles) {
-							if (!isTokenValid(await storage.get(ctx, profile))) {
-								return false
-							}
+		// >>> CONTEXT API <<<
+		.derive((ctx) => {
+			return {
+				async authorized(...profiles: Profiles[]) {
+					for (const profile of profiles) {
+						if (!isTokenValid(await storage.get(ctx, profile))) {
+							return false
 						}
-						return true
-					},
-
-					// authorize(...profiles: Profiles[]) {
-					//   throw new Error('not implemented');
-					// },
-
-					profiles<P extends Profiles = Profiles>(...profiles: P[]) {
-						if (profiles.length === 0) {
-							profiles = Object.keys(globalProfiles) as P[]
-						}
-
-						const result = {} as TOAuth2ProfileUrlMap<P>
-
-						for (const profile of profiles) {
-							result[profile] = {
-								login: buildLoginUri(profile),
-								callback: buildRedirectUri({ name: profile }),
-								logout: buildLogoutUri(profile)
-							}
-						}
-
-						return result
-					},
-
-					async tokenHeaders(profile) {
-						const token = await storage.get(ctx, profile)
-						return { Authorization: `Bearer ${token?.access_token}` }
 					}
-				} as TOAuth2Request<Profiles>
-			})
-	)
+					return true
+				},
+
+				// authorize(...profiles: Profiles[]) {
+				//   throw new Error('not implemented');
+				// },
+
+				profiles<P extends Profiles = Profiles>(...profiles: P[]) {
+					if (profiles.length === 0) {
+						profiles = Object.keys(globalProfiles) as P[]
+					}
+
+					const result = {} as TOAuth2ProfileUrlMap<P>
+
+					for (const profile of profiles) {
+						result[profile] = {
+							login: buildUri(login, profile),
+							callback: buildRedirectUri({ name: profile }),
+							logout: buildUri(logout, profile)
+						}
+					}
+
+					return result
+				},
+
+				async tokenHeaders(profile) {
+					const token = await storage.get(ctx, profile)
+					return { Authorization: `Bearer ${token?.access_token}` }
+				}
+			} as TOAuth2Request<Profiles>
+		})
 }
 
 export default oauth2

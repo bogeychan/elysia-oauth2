@@ -2,7 +2,7 @@
 
 Breaking Change:
 
-- throwing `Error` instead of `NotFoundError` if the profile doesn't exist
+- throwing `Error` instead of `NotFoundError` if the profile doesn't exist [#9](https://github.com/bogeychan/elysia-oauth2/pull/9)
 
 # 0.0.16 - 06 Oct 2023
 

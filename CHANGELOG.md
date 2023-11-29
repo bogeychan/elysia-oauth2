@@ -1,3 +1,9 @@
+# 0.0.17 - 29 Nov 2023
+
+Breaking Change:
+
+- throwing `Error` instead of `NotFoundError` if the profile doesn't exist
+
 # 0.0.16 - 06 Oct 2023
 
 Feature:

@@ -151,8 +151,6 @@ export type TOAuth2Provider = {
 	clientSecret: string
 }
 
-
-
 const oauth2 = <Profiles extends string>({
 	profiles: globalProfiles,
 	state,
@@ -183,152 +181,175 @@ const oauth2 = <Profiles extends string>({
 	}
 
 	return (
-		new Elysia({
-			name: '@bogeychan/elysia-oauth2'
-		}) as InternalOAuth2Elysia<Profiles>
-	)
-		.guard({}, app => app
+		(
+			new Elysia({
+				name: '@bogeychan/elysia-oauth2'
+			}) as InternalOAuth2Elysia<Profiles>
+		)
+			.guard({}, (app) =>
+				app
+					.derive((ctx) => {
+						const { name } = ctx.params as TOAuth2Params
 
-			.derive((ctx) => {
+						if (!(name in globalProfiles))
+							throw new NotFoundError('Profile not found.')
 
-				const { name } = ctx.params as TOAuth2Params
-				if (!(name in globalProfiles)) throw new NotFoundError("Profile not found.")
+						return {
+							profile: globalProfiles[name],
+							checkStateOnAuthorized: async () => {
+								const {
+									query: { code, state: callbackState }
+								} = ctx
+								if (!(await state.check(ctx, name, callbackState))) {
+									throw new Error('State mismatch')
+								}
+							}
+						}
+					})
 
-				return {
-					profile: globalProfiles[name],
-					checkStateOnAuthorized: async () => {
-						const { query: { code, state: callbackState } } = ctx;
+					// >>> LOGIN <<<
+					.get(login, async (ctx) => {
+						const {
+							profile: { provider, scope }
+						} = ctx
+
+						const {
+							clientId: client_id,
+							auth: { url, params }
+						} = provider
+
+						const { name } = ctx.params as TOAuth2Params
+
+						return redirect(
+							buildUrl(
+								url,
+								{
+									client_id,
+									redirect_uri: buildRedirectUri(ctx.params),
+									response_type: 'code',
+									response_mode: 'query',
+									state: await state.generate(ctx, name),
+									...params
+								},
+								scope
+							)
+						)
+					})
+
+					// >>> AUTHORIZED <<<
+					.get(authorized, async (ctx) => {
+						const {
+							profile: { provider },
+							query: { code },
+							checkStateOnAuthorized
+						} = ctx
+
+						await checkStateOnAuthorized()
+
+						const {
+							clientId: client_id,
+							clientSecret: client_secret,
+							token: { params, url }
+						} = provider
+
+						// ! required for reddit
+						const credentials = btoa(
+							provider.clientId + ':' + provider.clientSecret
+						)
+
+						const response = await fetch(url, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded',
+								Accept: 'application/json',
+								Authorization: `Basic ${credentials}`
+							},
+							body: new URLSearchParams({
+								client_id,
+								client_secret,
+								redirect_uri: buildRedirectUri(ctx.params),
+								grant_type: 'authorization_code',
+								// ! google requires decoded auth code
+								code: decodeURIComponent(code),
+								...params
+							}).toString()
+						})
+
 						if (
-							!(await state.check(
-								ctx,
-								name,
-								callbackState
-							))
+							!response.ok ||
+							!response.headers
+								.get('Content-Type')
+								?.startsWith('application/json')
 						) {
-							throw new Error('State mismatch')
+							throw new Error(
+								`${response.status}: ${
+									response.statusText
+								}: ${await response.text()}`
+							)
 						}
-					}
-				}
-			})
 
-			// >>> LOGIN <<<
-			.get(login, async (ctx) => {
-				const { profile: { provider, scope } } = ctx
-				const { clientId: client_id, auth: { url, params } } = provider
-				const { name } = ctx.params as TOAuth2Params
+						const token = (await response.json()) as TOAuth2AccessToken
+						// ! expires_in is not sent by some providers. a default of one hour is set, which is acceptable.
+						// ! https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
+						token.expires_in = token.expires_in ?? 3600
+						token.created_at = Date.now() / 1000
 
-				return redirect(buildUrl(url, {
-					client_id,
-					redirect_uri: buildRedirectUri(ctx.params),
-					response_type: 'code',
-					response_mode: 'query',
-					state: await state.generate(ctx, name),
-					...params
-				}, scope))
-			})
+						await storage.set(ctx, (ctx.params as TOAuth2Params).name, token)
 
-			// >>> AUTHORIZED <<<
-			.get(authorized, async (ctx) => {
-				const { profile: { provider }, query: { code }, checkStateOnAuthorized } = ctx
+						return redirect(redirectTo)
+					})
 
-				await checkStateOnAuthorized()
+					// >>> LOGOUT <<<
+					.get(logout, async (ctx) => {
+						const { name } = ctx.params as TOAuth2Params
 
-				const { clientId: client_id, clientSecret: client_secret, token: { params, url } } = provider
+						await storage.delete(ctx, name)
+						return redirect(redirectTo)
+					})
+			)
+			// end guard
 
-				// ! required for reddit
-				const credentials = btoa(
-					provider.clientId + ':' + provider.clientSecret
-				)
-
-				const response = await fetch(url, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/x-www-form-urlencoded',
-						Accept: 'application/json',
-						Authorization: `Basic ${credentials}`
+			// >>> CONTEXT API <<<
+			.derive((ctx) => {
+				return {
+					async authorized(...profiles: Profiles[]) {
+						for (const profile of profiles) {
+							if (!isTokenValid(await storage.get(ctx, profile))) {
+								return false
+							}
+						}
+						return true
 					},
-					body: new URLSearchParams({
-						client_id,
-						client_secret,
-						redirect_uri: buildRedirectUri(ctx.params),
-						grant_type: 'authorization_code',
-						// ! google requires decoded auth code
-						code: decodeURIComponent(code),
-						...params
-					}).toString()
-				})
 
-				if (
-					!response.ok ||
-					!response.headers.get('Content-Type')?.startsWith('application/json')
-				) {
-					throw new Error(
-						`${response.status}: ${
-							response.statusText
-						}: ${await response.text()}`
-					)
-				}
+					// authorize(...profiles: Profiles[]) {
+					//   throw new Error('not implemented');
+					// },
 
-				const token = (await response.json()) as TOAuth2AccessToken
-				// ! expires_in is not sent by some providers. a default of one hour is set, which is acceptable.
-				// ! https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
-				token.expires_in = token.expires_in ?? 3600
-				token.created_at = Date.now() / 1000
-
-				await storage.set(ctx, (ctx.params as TOAuth2Params).name, token)
-
-				return redirect(redirectTo)
-			})
-
-			// >>> LOGOUT <<<
-			.get(logout, async (ctx) => {
-				const { name } = ctx.params as TOAuth2Params
-				await storage.delete(ctx, name)
-				return redirect(redirectTo)
-			})
-		) 
-		// end guard
-
-		// >>> CONTEXT API <<<
-		.derive((ctx) => {
-			return {
-				async authorized(...profiles: Profiles[]) {
-					for (const profile of profiles) {
-						if (!isTokenValid(await storage.get(ctx, profile))) {
-							return false
+					profiles<P extends Profiles = Profiles>(...profiles: P[]) {
+						if (profiles.length === 0) {
+							profiles = Object.keys(globalProfiles) as P[]
 						}
-					}
-					return true
-				},
 
-				// authorize(...profiles: Profiles[]) {
-				//   throw new Error('not implemented');
-				// },
+						const result = {} as TOAuth2ProfileUrlMap<P>
 
-				profiles<P extends Profiles = Profiles>(...profiles: P[]) {
-					if (profiles.length === 0) {
-						profiles = Object.keys(globalProfiles) as P[]
-					}
-
-					const result = {} as TOAuth2ProfileUrlMap<P>
-
-					for (const profile of profiles) {
-						result[profile] = {
-							login: buildUri(login, profile),
-							callback: buildRedirectUri({ name: profile }),
-							logout: buildUri(logout, profile)
+						for (const profile of profiles) {
+							result[profile] = {
+								login: buildUri(login, profile),
+								callback: buildRedirectUri({ name: profile }),
+								logout: buildUri(logout, profile)
+							}
 						}
+
+						return result
+					},
+
+					async tokenHeaders(profile) {
+						const token = await storage.get(ctx, profile)
+						return { Authorization: `Bearer ${token?.access_token}` }
 					}
-
-					return result
-				},
-
-				async tokenHeaders(profile) {
-					const token = await storage.get(ctx, profile)
-					return { Authorization: `Bearer ${token?.access_token}` }
-				}
-			} as TOAuth2Request<Profiles>
-		})
+				} as TOAuth2Request<Profiles>
+			})
+	)
 }
 
 export default oauth2

@@ -395,7 +395,7 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<
 	'',
 	{
 		store: {}
-		request: TOAuth2ProviderContext<Profiles>
+		request: {}
 		schema: {}
 		error: {}
 		meta: {
@@ -403,6 +403,8 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<
 			defs: {}
 			exposed: {}
 		}
+		derive: TOAuth2ProviderContext<Profiles>
+		resolve: {}
 	}
 >
 

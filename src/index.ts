@@ -362,9 +362,10 @@ export type InferContext<T extends Elysia> = T extends Elysia<
 	infer Decorators,
 	infer _Definitions,
 	infer _ParentSchema,
+    	infer _Macro,
 	infer Routes
 >
-	? Context<Routes, DecoratorBase, Path> & Partial<Decorators['request']>
+	? Context<Routes, Decorators, Path> & Partial<Decorators['request']>
 	: never
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {

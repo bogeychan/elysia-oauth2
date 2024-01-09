@@ -1,3 +1,9 @@
+# 0.0.19 - 09 Jan 2024
+
+Bug fix:
+
+- update elysia to 0.8.8 / InferContext [#10](https://github.com/bogeychan/elysia-oauth2/pull/10)
+
 # 0.0.18 - 24 Dec 2023
 
 Bug fix:

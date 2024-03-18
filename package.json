@@ -15,12 +15,12 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "devDependencies": {
-    "bun-types": "1",
-    "elysia": "^0.8.8",
+    "@types/bun": "1",
+    "elysia": "^1.0.3",
     "typescript": "5"
   },
   "peerDependencies": {
-    "elysia": ">= 0.8.8"
+    "elysia": ">= 1.0.3"
   },
   "homepage": "https://github.com/bogeychan/elysia-oauth2",
   "bugs": "https://github.com/bogeychan/elysia-oauth2/issues",

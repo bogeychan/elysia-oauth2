@@ -1,4 +1,11 @@
-import { Elysia, NotFoundError, type Context, type DecoratorBase } from 'elysia'
+import {
+	Elysia,
+	NotFoundError,
+	type Context,
+	type SingletonBase,
+	type DefinitionBase,
+	type RouteBase
+} from 'elysia'
 import { buildUrl, isTokenValid, redirect } from './utils'
 
 export type TOAuth2Request<Profile extends string> = {
@@ -197,9 +204,7 @@ const oauth2 = <Profiles extends string>({
 						return {
 							profile: globalProfiles[name],
 							checkStateOnAuthorized: async () => {
-								const {
-									query: { code, state: callbackState }
-								} = ctx
+								const { code, state: callbackState } = ctx.query
 								if (!(await state.check(ctx, name, callbackState))) {
 									throw new Error('State mismatch')
 								}
@@ -310,7 +315,7 @@ const oauth2 = <Profiles extends string>({
 			// end guard
 
 			// >>> CONTEXT API <<<
-			.derive((ctx) => {
+			.derive({ as: 'global' }, (ctx) => {
 				return {
 					async authorized(...profiles: Profiles[]) {
 						for (const profile of profiles) {
@@ -357,15 +362,18 @@ export * from './providers'
 
 // not relevant, just type declarations...
 
-export type InferContext<T extends Elysia> = T extends Elysia<
+export type InferContext<T> = T extends Elysia<
 	infer Path,
-	infer Decorators,
+	infer _Scoped,
+	infer Singleton,
 	infer _Definitions,
-	infer _ParentSchema,
-    	infer _Macro,
-	infer Routes
+	infer _Metadata,
+	infer Routes,
+	infer _EphemeralMetadata
 >
-	? Context<Routes, Decorators, Path> & Partial<Decorators['request']>
+	? Context<Routes, SingletonBase, Path> &
+			Partial<Singleton['derive']> &
+			Partial<Singleton['decorator']>
 	: never
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {
@@ -392,19 +400,13 @@ type TOAuth2ProviderContext<Profiles extends string> = {
 	}
 }
 
-type InternalOAuth2Elysia<Profiles extends string> = Elysia<
+export type InternalOAuth2Elysia<Profiles extends string> = Elysia<
 	'',
+	false,
 	{
 		store: {}
-		request: {}
-		schema: {}
-		error: {}
-		meta: {
-			schema: {}
-			defs: {}
-			exposed: {}
-		}
 		derive: TOAuth2ProviderContext<Profiles>
+		decorator: {}
 		resolve: {}
 	}
 >

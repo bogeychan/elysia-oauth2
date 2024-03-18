@@ -1,11 +1,4 @@
-import {
-	Elysia,
-	NotFoundError,
-	type Context,
-	type SingletonBase,
-	type DefinitionBase,
-	type RouteBase
-} from 'elysia'
+import { Elysia, NotFoundError, type Context, type SingletonBase } from 'elysia'
 import { buildUrl, isTokenValid, redirect } from './utils'
 
 export type TOAuth2Request<Profile extends string> = {
@@ -400,7 +393,7 @@ type TOAuth2ProviderContext<Profiles extends string> = {
 	}
 }
 
-export type InternalOAuth2Elysia<Profiles extends string> = Elysia<
+type InternalOAuth2Elysia<Profiles extends string> = Elysia<
 	'',
 	false,
 	{

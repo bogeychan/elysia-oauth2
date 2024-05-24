@@ -1,4 +1,4 @@
-import { Elysia, NotFoundError, type Context, type SingletonBase } from 'elysia'
+import { Elysia, NotFoundError, type RouteSchema, type Context } from 'elysia'
 import { buildUrl, isTokenValid, redirect } from './utils'
 
 export type TOAuth2Request<Profile extends string> = {
@@ -197,7 +197,7 @@ const oauth2 = <Profiles extends string>({
 						return {
 							profile: globalProfiles[name],
 							checkStateOnAuthorized: async () => {
-								const { code, state: callbackState } = ctx.query
+								const callbackState = ctx.query.state
 								if (!(await state.check(ctx, name, callbackState))) {
 									throw new Error('State mismatch')
 								}
@@ -238,9 +238,9 @@ const oauth2 = <Profiles extends string>({
 					.get(authorized, async (ctx) => {
 						const {
 							profile: { provider },
-							query: { code },
 							checkStateOnAuthorized
 						} = ctx
+						const code = ctx.query.code
 
 						await checkStateOnAuthorized()
 
@@ -356,17 +356,28 @@ export * from './providers'
 // not relevant, just type declarations...
 
 export type InferContext<T> = T extends Elysia<
-	infer Path,
+	infer _Path,
 	infer _Scoped,
 	infer Singleton,
 	infer _Definitions,
 	infer _Metadata,
-	infer Routes,
-	infer _EphemeralMetadata
+	infer _Routes,
+	infer Ephemeral,
+	infer Volatile
 >
-	? Context<Routes, SingletonBase, Path> &
-			Partial<Singleton['derive']> &
-			Partial<Singleton['decorator']>
+	? Context<
+			RouteSchema,
+			{
+				decorator: Partial<Singleton['decorator']>
+				store: Partial<Singleton['store']>
+				derive: Partial<
+					Singleton['derive'] & Ephemeral['derive'] & Volatile['derive']
+				>
+				resolve: Partial<
+					Singleton['resolve'] & Ephemeral['resolve'] & Volatile['resolve']
+				>
+			}
+	  >
 	: never
 
 type TOAuth2ProfileUrlMap<Profiles extends string> = {

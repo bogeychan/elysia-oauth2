@@ -73,4 +73,4 @@ app
 	})
 	.listen(3000)
 
-console.log(`http://${app.server!.hostname}:${app.server!.port}`)
+console.log(`${app.server!.url}`)

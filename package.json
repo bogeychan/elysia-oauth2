@@ -16,11 +16,11 @@
   "types": "src/index.ts",
   "devDependencies": {
     "@types/bun": "1",
-    "elysia": "^1.0.3",
+    "elysia": "^1.0.22",
     "typescript": "5"
   },
   "peerDependencies": {
-    "elysia": ">= 1.0.3"
+    "elysia": ">= 1.0.22"
   },
   "homepage": "https://github.com/bogeychan/elysia-oauth2",
   "bugs": "https://github.com/bogeychan/elysia-oauth2/issues",

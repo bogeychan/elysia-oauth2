@@ -11,7 +11,7 @@ import { randomBytes } from 'crypto'
 const globalState = randomBytes(8).toString('hex')
 let globalToken = null
 
-const mySessionPLugin = new Elysia().derive((ctx) => ({
+const mySessionPLugin = new Elysia().derive({ as: 'global' }, (ctx) => ({
 	session: {
 		getOAuthToken(name: string): TOAuth2AccessToken {
 			return globalToken

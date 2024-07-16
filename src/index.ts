@@ -197,7 +197,7 @@ const oauth2 = <Profiles extends string>({
 						return {
 							profile: globalProfiles[name],
 							checkStateOnAuthorized: async () => {
-								const callbackState = ctx.query.state
+								const callbackState = ctx.query.state as string
 								if (!(await state.check(ctx, name, callbackState))) {
 									throw new Error('State mismatch')
 								}
@@ -240,7 +240,7 @@ const oauth2 = <Profiles extends string>({
 							profile: { provider },
 							checkStateOnAuthorized
 						} = ctx
-						const code = ctx.query.code
+						const code = ctx.query.code as string
 
 						await checkStateOnAuthorized()
 

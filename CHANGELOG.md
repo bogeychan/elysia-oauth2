@@ -1,3 +1,9 @@
+# 0.0.22 - 16 July 2024
+
+Bug fix:
+
+- bump elysia to 1.1.0
+
 # 0.0.21 - 24 Mai 2024
 
 Bug fix:

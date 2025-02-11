@@ -9,12 +9,12 @@ import oauth2, {
 import { randomBytes } from 'crypto'
 
 const globalState = randomBytes(8).toString('hex')
-let globalToken = null
+let globalToken: TOAuth2AccessToken | null = null
 
 const mySessionPLugin = new Elysia().derive({ as: 'global' }, (ctx) => ({
 	session: {
 		getOAuthToken(name: string): TOAuth2AccessToken {
-			return globalToken
+			return globalToken!
 		},
 		setOAuthToken(name: string, token: TOAuth2AccessToken) {
 			globalToken = token
@@ -44,13 +44,13 @@ const auth = oauth2({
 	},
 	storage: {
 		get(ctx: InferContext<typeof app>, name) {
-			return ctx.session.getOAuthToken(name)
+			return ctx.session!.getOAuthToken(name)
 		},
 		set(ctx: InferContext<typeof app>, name, token) {
-			ctx.session.setOAuthToken(name, token)
+			ctx.session!.setOAuthToken(name, token)
 		},
 		delete(ctx: InferContext<typeof app>, name) {
-			ctx.session.deleteOAuthToken(name)
+			ctx.session!.deleteOAuthToken(name)
 		}
 	}
 })
@@ -73,7 +73,7 @@ app
 	})
 	.listen(3000)
 
-console.log(`http://${app.server!.hostname}:${app.server!.port}`)
+console.log(`http://${app.server!.url}`)
 
 const loginPage = (login: string) => (
 	<html lang="en">

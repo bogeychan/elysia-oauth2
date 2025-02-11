@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia'
-import { html } from '@elysiajs/html'
+import { html, Html } from '@elysiajs/html'
 import oauth2, {
 	github,
 	type InferContext,

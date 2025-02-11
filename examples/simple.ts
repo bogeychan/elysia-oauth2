@@ -1,10 +1,10 @@
 import { Elysia } from 'elysia'
-import oauth2, { github } from '../src'
+import oauth2, { github, TOAuth2AccessToken } from '../src'
 
 import { randomBytes } from 'crypto'
 
 const globalState = randomBytes(8).toString('hex')
-let globalToken = null
+let globalToken: TOAuth2AccessToken | undefined
 
 const app = new Elysia()
 
@@ -31,7 +31,7 @@ const auth = oauth2({
 			globalToken = token
 		},
 		delete(ctx, name) {
-			globalToken = null
+			globalToken = undefined
 		}
 	}
 })

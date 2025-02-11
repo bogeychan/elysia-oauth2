@@ -1,4 +1,10 @@
-import { Elysia, NotFoundError, type RouteSchema, type Context } from 'elysia'
+import {
+	Elysia,
+	NotFoundError,
+	type RouteSchema,
+	type Context,
+	type MaybePromise
+} from 'elysia'
 import { buildUrl, isTokenValid, redirect } from './utils'
 
 export type TOAuth2Request<Profile extends string> = {
@@ -54,18 +60,18 @@ export interface OAuth2Storage<Profiles extends string> {
 		ctx: Context,
 		name: Profiles,
 		token: TOAuth2AccessToken
-	): PromiseOrNow<void>
+	): MaybePromise<void>
 	/**
 	 * Get token from storage
 	 */
 	get(
 		ctx: Context,
 		name: Profiles
-	): PromiseOrNow<TOAuth2AccessToken | undefined>
+	): MaybePromise<TOAuth2AccessToken | undefined>
 	/**
 	 * Delete token in storage (most likely a logout)
 	 */
-	delete(ctx: Context, name: Profiles): PromiseOrNow<void>
+	delete(ctx: Context, name: Profiles): MaybePromise<void>
 }
 
 /**
@@ -75,11 +81,11 @@ export interface OAuth2State<Profiles extends string> {
 	/**
 	 * Generate a new unique state
 	 */
-	generate: (ctx: Context, name: Profiles) => PromiseOrNow<string>
+	generate: (ctx: Context, name: Profiles) => MaybePromise<string>
 	/**
 	 * Check if the state exists
 	 */
-	check: (ctx: Context, name: Profiles, state: string) => PromiseOrNow<boolean>
+	check: (ctx: Context, name: Profiles, state: string) => MaybePromise<boolean>
 }
 
 type TPluginParams<Profiles extends string> = {
@@ -177,7 +183,7 @@ const oauth2 = <Profiles extends string>({
 	}
 
 	function buildRedirectUri({ name }: TOAuth2Params) {
-		return buildUri(authorized, name, true)
+		return buildUri(authorized!, name, true)
 	}
 
 	return (
@@ -357,7 +363,6 @@ export * from './providers'
 
 export type InferContext<T> = T extends Elysia<
 	infer _Path,
-	infer _Scoped,
 	infer Singleton,
 	infer _Definitions,
 	infer _Metadata,
@@ -406,7 +411,6 @@ type TOAuth2ProviderContext<Profiles extends string> = {
 
 type InternalOAuth2Elysia<Profiles extends string> = Elysia<
 	'',
-	false,
 	{
 		store: {}
 		derive: TOAuth2ProviderContext<Profiles>
@@ -414,5 +418,3 @@ type InternalOAuth2Elysia<Profiles extends string> = Elysia<
 		resolve: {}
 	}
 >
-
-type PromiseOrNow<T> = T | Promise<T>

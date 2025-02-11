@@ -1,6 +1,6 @@
 {
   "name": "@bogeychan/elysia-oauth2",
-  "version": "0.0.22",
+  "version": "0.1.0",
   "description": "A plugin for Elysia.js for server-side OAuth 2.0 Authorization Code Flow",
   "author": {
     "name": "bogeychan",
@@ -15,8 +15,9 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "test": "bun test",
-    "check": "tsc"
+    "test": "bun run test:types && bun test",
+    "test:types": "tsc",
+    "release": "bun run test && npm publish --access public"
   },
   "devDependencies": {
     "@types/bun": "^1.2.2",
